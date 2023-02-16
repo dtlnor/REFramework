@@ -44,7 +44,7 @@ jobs:
         run: echo "SHA_SHORT=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
       - name: Release
-        if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/RE_RSZ_MHRise'
         uses: softprops/action-gh-release@v0.1.13
         with:
           repository: dtlnor/REFramework
