@@ -43,14 +43,42 @@ hardcoded_align_sizes = {
     "RuntimeType": als(4, 4),
 }
 
-def generate_native_name(element):
+hardcoded_native_type_to_type = {
+    'bool': 'Bool',
+    'c8': 'C8',
+    's8': 'S8',
+    'u8': 'U8',
+
+    'c16': 'C16',
+    's16': 'S16',
+    'u16': 'U16',
+
+    's32': 'S32',
+    'u32': 'U32',
+    'f32': 'F32',
+    'float': 'F32',
+    'int': 'S32',
+    'size_t': 'U32',
+
+    's64': 'S64',
+    'u64': 'U64',
+    'f64': 'F64',
+
+    'Object': 'Object',
+    'userdata': 'UserData'
+}
+
+
+def generate_native_name(element, use_p_name, p):
     if element is None:
         os.system("Error")
 
     if element["string"] == True:
         return "String"
     elif element["list"] == True:
-        return generate_native_name(element["element"])
+        return generate_native_name(element["element"], False, p)
+    elif use_p_name:
+        return hardcoded_native_type_to_type.get(p["type"], "Data")
     
     return "Data"
 
@@ -60,9 +88,10 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
 
     fields_out = []
     struct_str = ""
+    max_parent_level = 16
 
     # Go through parents until we run into a native that we need to insert at the top of the structure
-    for f in range(0, 10):
+    for f in range(0, max_parent_level):
         if natives is None or "parent" not in e:
             break
 
@@ -85,9 +114,35 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
             struct_str = struct_str + "// " + chain["name"] + " BEGIN\n"
             
             layout = chain["layout"]
-            for field in layout:
-                native_type_name = generate_native_name(field)
+
+            reflection_properties = il2cpp_dump[chain["name"]].get("reflection_properties", None)
+            append_potential_name = False
+
+            if len(layout) == len(reflection_properties):
+                append_potential_name = True
+
+                # sort reflection_properties by its native order
+                order = [(int(v["order"]), (k,v)) for k, v in reflection_properties.items()]
+                reflection_properties = dict([v for _, v in sorted(order)])
+
+                for p, field in zip(reflection_properties.values(), layout):
+                    t = hardcoded_native_type_to_type.get(p["type"], "Data")
+                    if t == "Data":
+                        continue
+                    elif hardcoded_align_sizes[t]["align"] != field["align"]:
+                        append_potential_name = False
+
+            if append_potential_name:
+                rp_names = list(reflection_properties.keys())
+                rp_value = list(reflection_properties.values())
+            else:
+                rp_value = list(range(0, len(layout)))
+
+            for rp_idx, field in enumerate(layout):
+                native_type_name = generate_native_name(field, append_potential_name, rp_value[rp_idx])
                 native_field_name = "v" + str(i)
+                if append_potential_name:
+                    native_field_name += "_" + rp_names[rp_idx]
 
                 new_entry = {
                     "type": native_type_name,
