@@ -12,6 +12,21 @@
 
 namespace sdk {
 namespace behaviortree {
+
+std::vector<TreeNode*> SelectorFSM::get_next_nodes() const {
+    const auto data = this->next_nodes;
+    std::vector<TreeNode*> out{};
+
+    return out;
+}
+
+std::vector<TreeNode*> SelectorFSM::get_node_choices() const {
+    const auto data = this->next_nodes;
+    std::vector<TreeNode*> out{};
+
+    return out;
+}
+
 std::vector<TreeNode*> TreeNode::get_children() const {
     const auto tree_data = get_data();
 

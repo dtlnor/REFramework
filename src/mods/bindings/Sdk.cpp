@@ -1806,6 +1806,7 @@ void bindings::open_sdk(ScriptState* s) {
         },\
         "empty", & C < T >::empty, \
         "emplace", & C < T >::emplace, \
+        "resize", & C < T >::resize, \
         "push_back", [](C < T >& arr, T value) { arr.push_back(value); },\
         "pop_back", & C < T >::pop_back,\
         "size", & C < T >::size,\
@@ -1853,6 +1854,7 @@ void bindings::open_sdk(ScriptState* s) {
         },\
         "empty", & C < T >::empty, \
         "emplace", & C < T >::emplace, \
+        "resize", & C < T >::resize, \
         "push_back", [](C < T >& arr, T* value) { arr.push_back(*value); },\
         "pop_back", & C < T >::pop_back,\
         "size", & C < T >::size,\
@@ -1882,6 +1884,7 @@ void bindings::open_sdk(ScriptState* s) {
         },\
         "empty", & C < T >::empty, \
         "emplace", & C < T >::emplace, \
+        "resize", & C < T >::resize, \
         "push_back", [](C < T >& arr, T value) { arr.push_back(value); },\
         "pop_back", & C < T >::pop_back,\
         "size", & C < T >::size,\
@@ -1925,7 +1928,7 @@ void bindings::open_sdk(ScriptState* s) {
         "is_branch", &::sdk::behaviortree::TreeNodeData::is_branch,
         "is_end", &::sdk::behaviortree::TreeNodeData::is_end,
         "has_selector", &::sdk::behaviortree::TreeNodeData::has_selector,
-        //"selector_id", &::sdk::behaviortree::TreeNodeData::selector_id,
+        // "selector_id", &::sdk::behaviortree::TreeNodeData::selector_id,
         "attr", &::sdk::behaviortree::TreeNodeData::attr,
         "parent", &::sdk::behaviortree::TreeNodeData::parent,
         "parent_2", &::sdk::behaviortree::TreeNodeData::parent_2,
@@ -1943,6 +1946,20 @@ void bindings::open_sdk(ScriptState* s) {
         "get_tags", &::sdk::behaviortree::TreeNodeData::get_tags,
         "get_name", &::sdk::behaviortree::TreeNodeData::get_name,
         "set_name", &::sdk::behaviortree::TreeNodeData::set_name
+    );
+
+    lua.new_usertype<::sdk::behaviortree::SelectorFSM>("SelectorFSM",
+        "as_memoryview", [](::sdk::behaviortree::SelectorFSM* node) {
+            return api::sdk::MemoryView((uint8_t*)node, sizeof(::sdk::behaviortree::SelectorFSM));
+        },
+        "to_valuetype", [](::sdk::behaviortree::SelectorFSM* node) {
+            return *node;
+        },
+        "get_owner_node", &::sdk::behaviortree::SelectorFSM::get_owner_node,
+        "get_active_node", &::sdk::behaviortree::SelectorFSM::get_active_node
+//        "get_next_nodes", &::sdk::behaviortree::SelectorFSM::get_next_nodes,
+//        "get_node_choices", &::sdk::behaviortree::SelectorFSM::get_node_choices,
+//        "illegal", &::sdk::behaviortree::SelectorFSM::illegal
     );
 
     lua.new_usertype<::sdk::behaviortree::TreeNode>("BehaviorTreeNode",
@@ -1971,9 +1988,27 @@ void bindings::open_sdk(ScriptState* s) {
         "get_status1", &::sdk::behaviortree::TreeNode::get_status1,
         "get_status2", &::sdk::behaviortree::TreeNode::get_status2,
         "relocate", &::sdk::behaviortree::TreeNode::relocate,
+
+        "get_node_end", &::sdk::behaviortree::TreeNode::get_node_end,
+        "get_node_restart", &::sdk::behaviortree::TreeNode::get_node_restart,
+        "get_node_end_notify", &::sdk::behaviortree::TreeNode::get_node_end_notify,
+        "get_node_end_selector", &::sdk::behaviortree::TreeNode::get_node_end_selector,
+        "get_node_active_child", &::sdk::behaviortree::TreeNode::get_node_active_child,
         "get_selector", [](sol::this_state s, ::sdk::behaviortree::TreeNode* node) {
             return sol::make_object(s, (::REManagedObject*)node->get_selector());
-        }
+        },
+//        "get_selector", &::sdk::behaviortree::TreeNode::get_selector,
+        "get_selector_condition", [](sol::this_state s, ::sdk::behaviortree::TreeNode* node) {
+          return sol::make_object(s, (::REManagedObject*)node->get_selector_condition());
+        },
+        "get_selector_condition_index", &::sdk::behaviortree::TreeNode::get_selector_condition_index,
+        "get_parent_condition", [](sol::this_state s, ::sdk::behaviortree::TreeNode* node) {
+          return sol::make_object(s, (::REManagedObject*)node->get_parent_condition());
+        },
+        "get_parent_condition_index", &::sdk::behaviortree::TreeNode::get_parent_condition_index,
+
+        "get_attr", &::sdk::behaviortree::TreeNode::get_attr,
+        "get_priority", &::sdk::behaviortree::TreeNode::get_priority
     );
 
     DYNAMIC_ARRAY_NOCAP_TYPE_REF(::sdk::behaviortree::TreeNode, "DynamicArrayNoCapacityTreeNode");
@@ -2031,6 +2066,9 @@ void bindings::open_sdk(ScriptState* s) {
         "get_tree_object", [](api::sdk::BehaviorTreeCoreHandle* handle) {
             return ((sdk::behaviortree::CoreHandle*)handle)->get_tree_object();
         },
+        // "get_core", [](api::sdk::BehaviorTreeCoreHandle* handle) {
+        //     return ((sdk::behaviortree::CoreHandle*)handle)->get_core();
+        // },
         "relocate", [](api::sdk::BehaviorTreeCoreHandle* handle, uintptr_t old_start, uintptr_t old_end, sdk::NativeArrayNoCapacity<sdk::behaviortree::TreeNode>& new_nodes) {
             ((sdk::behaviortree::CoreHandle*)handle)->relocate(old_start, old_end, new_nodes);
         },

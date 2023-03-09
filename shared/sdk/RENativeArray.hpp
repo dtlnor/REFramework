@@ -58,7 +58,7 @@ template <typename T> struct NativeArray {
 
         if (new_size == 0) {
             clear();
-            return;
+            return true;
         }
 
         if (new_size > num_allocated) {
@@ -92,6 +92,7 @@ template <typename T> struct NativeArray {
         }
 
         num = new_size;
+        return true;
     }
 
     T& emplace() {
@@ -236,7 +237,7 @@ struct NativeArrayNoCapacity {
 
         if (new_size == 0) {
             clear();
-            return;
+            return true;
         }
 
         if (new_size > num_allocated || elements == nullptr) {
@@ -274,6 +275,7 @@ struct NativeArrayNoCapacity {
         }
 
         num = new_size;
+        return true;
     }
 
     T& emplace(bool fix_pointers = false) {

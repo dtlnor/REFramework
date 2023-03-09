@@ -10,6 +10,7 @@
 #include "regenny/mhrise_tdb71/via/behaviortree/BehaviorTreeCoreHandleArray.hpp"
 #include "regenny/mhrise_tdb71/via/motion/MotionFsm2Layer.hpp"
 #include "regenny/mhrise_tdb71/via/behaviortree/TreeNodeData.hpp"
+#include "regenny/mhrise_tdb71/via/behaviortree/SelectorFSM.hpp"
 #include "regenny/mhrise_tdb71/via/behaviortree/TreeNode.hpp"
 #include "regenny/mhrise_tdb71/via/behaviortree/TreeObjectData.hpp"
 #include "regenny/mhrise_tdb71/via/behaviortree/TreeObject.hpp"
@@ -103,6 +104,18 @@ public:
     }
 };
 
+class SelectorFSM : public regenny::via::behaviortree::SelectorFSM {
+public:
+    sdk::behaviortree::TreeNode* get_owner_node() const {
+        return (sdk::behaviortree::TreeNode*)this->owner_node;
+    }
+    sdk::behaviortree::TreeNode* get_active_node() const {
+        return (sdk::behaviortree::TreeNode*)this->active_node;
+    }
+    std::vector<TreeNode*> get_next_nodes() const;
+    std::vector<TreeNode*> get_node_choices() const;
+};
+
 class TreeNode : public regenny::via::behaviortree::TreeNode {
 public:
     std::vector<TreeNode*> get_children() const;
@@ -136,12 +149,31 @@ public:
         return (sdk::behaviortree::TreeNode*)this->node_parent;
     }
 
+
+    sdk::behaviortree::TreeNode* get_node_end() const {
+        return (sdk::behaviortree::TreeNode*)this->node_end;
+    }
+    sdk::behaviortree::TreeNode* get_node_restart() const {
+        return (sdk::behaviortree::TreeNode*)this->node_restart;
+    }
+    sdk::behaviortree::TreeNode* get_node_end_notify() const {
+        return (sdk::behaviortree::TreeNode*)this->node_end_notify;
+    }
+    sdk::behaviortree::TreeNode* get_node_end_selector() const {
+        return (sdk::behaviortree::TreeNode*)this->node_end_selector;
+    }
+    sdk::behaviortree::TreeNode* get_node_active_child() const {
+        return (sdk::behaviortree::TreeNode*)this->node_active_child;
+    }
+
     uint16_t get_attr() const {
         return this->attr;
     }
 
-    regenny::via::behaviortree::SelectorFSM* get_selector() const {
-        return this->selector;
+//    regenny::via::behaviortree::SelectorFSM* get_selector() const {
+//        return this->selector;
+    sdk::behaviortree::SelectorFSM* get_selector() const {
+        return (sdk::behaviortree::SelectorFSM*)this->selector;
     }
 
     regenny::via::behaviortree::Condition* get_selector_condition() const {
@@ -166,6 +198,10 @@ public:
 #else
         return nullptr;
 #endif
+    }
+
+    int32_t get_parent_condition_index() const {
+        return this->parent_condition_index;
     }
 
     regenny::via::behaviortree::NodeStatus get_status1() const {
@@ -231,6 +267,10 @@ public:
     sdk::NativeArrayNoCapacity<uint8_t>& get_static_action_methods() {
         return *(sdk::NativeArrayNoCapacity<uint8_t>*)&this->static_action_methods;
     }
+};
+
+class Core : public regenny::via::behaviortree::Core {
+
 };
 
 class TreeObject : public regenny::via::behaviortree::TreeObject {
@@ -401,6 +441,9 @@ public:
     sdk::behaviortree::TreeObject* get_tree_object() const {
         return (sdk::behaviortree::TreeObject*)this->core.tree_object;
     }
+    // regenny::via::behaviortree::Core* get_core() const {
+    //     return (regenny::via::behaviortree::Core*)this->core;
+    // }
 
     void relocate(uintptr_t old_start, uintptr_t old_end, sdk::NativeArrayNoCapacity<TreeNode>& new_nodes);
     void relocate_datas(uintptr_t old_start, uintptr_t old_end, sdk::NativeArrayNoCapacity<TreeNodeData>& new_nodes);
@@ -442,5 +485,8 @@ public:
     sdk::behaviortree::TreeObject* get_tree_object() const {
         return (sdk::behaviortree::TreeObject*)this->core.tree_object;
     }
+    // via::behaviortree::Core* get_core() const {
+    //     return (via::behaviortree::Core*)this->core;
+    // }
 };
 }
