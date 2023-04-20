@@ -20,8 +20,13 @@
 #include "sdk/regenny/re2_tdb70/via/Window.hpp"
 #include "sdk/regenny/re2_tdb70/via/SceneView.hpp"
 #elif TDB_VER >= 71
+#ifdef RE4
+#include "sdk/regenny/re4/via/Window.hpp"
+#include "sdk/regenny/re4/via/SceneView.hpp"
+#else
 #include "sdk/regenny/mhrise_tdb71/via/Window.hpp"
 #include "sdk/regenny/mhrise_tdb71/via/SceneView.hpp"
+#endif
 #endif
 
 #include "sdk/Math.hpp"
@@ -366,7 +371,7 @@ bool VR::on_pre_overlay_layer_draw(sdk::renderer::layer::Overlay* layer, void* r
     // NOT RE3
     // for some reason RE3 has weird issues with the overlay rendering
     // causing double vision
-#if (TDB_VER < 70 and not defined(RE3)) or (TDB_VER >= 70 and (not defined(RE3) and not defined(RE2) and not defined(RE7)))
+#if (TDB_VER < 70 and not defined(RE3)) or (TDB_VER >= 70 and (not defined(RE3) and not defined(RE2) and not defined(RE7) and not defined(RE4)))
     if (m_allow_engine_overlays->value()) {
         return true;
     }
@@ -1147,6 +1152,7 @@ std::optional<std::string> VR::hijack_camera() {
 }
 
 std::optional<std::string> VR::hijack_wwise_listeners() {
+#ifndef RE4
     const auto t = sdk::find_type_definition("via.wwise.WwiseListener");
 
     if (t == nullptr) {
@@ -1205,6 +1211,7 @@ std::optional<std::string> VR::hijack_wwise_listeners() {
     if (!g_wwise_listener_update_hook->create()) {
         return "VR init failed: via.wwise.WwiseListener update native function hook failed.";
     }
+#endif
 
     return std::nullopt;
 }
@@ -1409,6 +1416,7 @@ void VR::update_camera() {
     auto camera = sdk::get_primary_camera();
 
     if (camera == nullptr) {
+        spdlog::error("VR: Failed to get primary camera!");
         return;
     }
 
@@ -1499,6 +1507,7 @@ void VR::update_camera_origin() {
     auto camera_object = utility::re_component::get_game_object(camera);
 
     if (camera_object == nullptr || camera_object->transform == nullptr) {
+        spdlog::error("VR: Failed to get camera game object or transform!");
         m_needs_camera_restore = false;
         return;
     }
@@ -1506,6 +1515,7 @@ void VR::update_camera_origin() {
     auto camera_joint = utility::re_transform::get_joint(*camera_object->transform, 0);
 
     if (camera_joint == nullptr) {
+        spdlog::error("VR: Failed to get camera joint!");
         m_needs_camera_restore = false;
         return;
     }
@@ -2313,6 +2323,11 @@ bool VR::on_pre_gui_draw_element(REComponent* gui_element, void* primitive_conte
 #if defined(RE2) || defined(RE3)
         // the weird buggy overlay in the inventory
         case "GuiBack"_fnv:
+            return false;
+#endif
+
+#if defined(RE4)
+        case "Gui_ui2510"_fnv: // Black bars in cutscenes
             return false;
 #endif
 
@@ -3569,12 +3584,12 @@ void VR::openvr_input_to_re_engine() {
 void VR::on_draw_ui() {
     // create VR tree entry in menu (imgui)
     if (get_runtime()->loaded) {
-        ImGui::SetNextTreeNodeOpen(m_has_hw_scheduling, ImGuiCond_::ImGuiCond_FirstUseEver);
+        ImGui::SetNextItemOpen(m_has_hw_scheduling, ImGuiCond_::ImGuiCond_FirstUseEver);
     } else {
         if (m_openvr->error && !m_openvr->dll_missing) {
-            ImGui::SetNextTreeNodeOpen(true, ImGuiCond_::ImGuiCond_FirstUseEver);
+            ImGui::SetNextItemOpen(true, ImGuiCond_::ImGuiCond_FirstUseEver);
         } else {
-            ImGui::SetNextTreeNodeOpen(false, ImGuiCond_::ImGuiCond_FirstUseEver);
+            ImGui::SetNextItemOpen(false, ImGuiCond_::ImGuiCond_FirstUseEver);
         }
     }
 
