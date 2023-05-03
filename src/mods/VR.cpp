@@ -1823,7 +1823,9 @@ void VR::disable_bad_effects() {
         return;
     }
 
-    if (m_force_fps_settings->value() && get_framerate_setting_method != nullptr && set_framerate_setting_method != nullptr) {
+    static const auto is_sf6 = utility::get_module_path(utility::get_executable())->find("StreetFighter") != std::string::npos;
+
+    if (!is_sf6 && m_force_fps_settings->value() && get_framerate_setting_method != nullptr && set_framerate_setting_method != nullptr) {
         const auto framerate_setting = get_framerate_setting_method->call<via::render::RenderConfig::FramerateType>(context, render_config);
 
         // Allow FPS to go above 60
@@ -1834,9 +1836,9 @@ void VR::disable_bad_effects() {
     }
     
     // get_MaxFps on application
-    if (m_force_fps_settings->value() && application->get_max_fps() < 600.0f) {
+    if (!is_sf6 && m_force_fps_settings->value() && application->get_max_fps() <  600.0f) {
         application->set_max_fps(600.0f);
-        spdlog::info("[VR] Max FPS set to 600");
+        spdlog::info("[VR] Max FPS set to {}", 600.0f);
     }
 
     if (m_force_aa_settings->value() && get_antialiasing_method != nullptr && set_antialiasing_method != nullptr) {
@@ -1951,8 +1953,8 @@ void VR::disable_bad_effects() {
         if (get_delay_render_enable_method != nullptr && set_delay_render_enable_method != nullptr) {
             const auto is_delay_render_enabled = get_delay_render_enable_method->call<bool>(context);
 
-            if (is_delay_render_enabled == m_enable_asynchronous_rendering) {
-                set_delay_render_enable_method->call<void*>(context, !m_enable_asynchronous_rendering);
+            if (is_delay_render_enabled == m_enable_asynchronous_rendering->value()) {
+                set_delay_render_enable_method->call<void*>(context, !m_enable_asynchronous_rendering->value());
                 spdlog::info("[VR] Delay render modified");
             }
         }
@@ -2669,8 +2671,8 @@ bool VR::on_pre_gui_draw_element(REComponent* gui_element, void* primitive_conte
                         };
                         
                         // Fix position of interaction icons
-                        if (name_hash == "GUI_FloatIcon"_fnv || name_hash == "RogueFloatIcon"_fnv) { // RE2, RE3
-                            if (name_hash == "GUI_FloatIcon"_fnv) {
+                        if (name_hash == "GUI_FloatIcon"_fnv || name_hash == "RogueFloatIcon"_fnv || name_hash == "Gui_FloatIcon"_fnv) { // RE2, RE3, RE4
+                            if (name_hash == "GUI_FloatIcon"_fnv || name_hash == "Gui_FloatIcon"_fnv) {
                                 m_last_interaction_display = std::chrono::steady_clock::now();
                             }
                         
@@ -3709,6 +3711,7 @@ void VR::on_draw_ui() {
     m_force_lensflares_settings->draw("Force Disable Lens Flares");
     m_force_dynamic_shadows_settings->draw("Force Enable Dynamic Shadows");
     m_allow_engine_overlays->draw("Allow Engine Overlays");
+    m_enable_asynchronous_rendering->draw("Enable Asynchronous Rendering");
 
     if (ImGui::TreeNode("Desktop Recording Fix")) {
         ImGui::PushID("Desktop");
@@ -3726,7 +3729,6 @@ void VR::on_draw_ui() {
     ImGui::Checkbox("Disable Backbuffer Size Override", &m_disable_backbuffer_size_override);
     ImGui::Checkbox("Disable Temporal Fix", &m_disable_temporal_fix);
     ImGui::Checkbox("Disable Post Effect Fix", &m_disable_post_effect_fix);
-    ImGui::Checkbox("Enable Asynchronous Rendering", &m_enable_asynchronous_rendering);
     
     const double min_ = 0.0;
     const double max_ = 25.0;
