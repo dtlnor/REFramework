@@ -27,6 +27,7 @@ hardcoded_align_sizes = {
     "C16": als(2, 2),
     "S16": als(2, 2),
     "U16": als(2, 2),
+    "F16": als(2, 2),
     
     "S32": als(4, 4),
     "U32": als(4, 4),
@@ -41,45 +42,310 @@ hardcoded_align_sizes = {
     "Resource": als(4, 4),
     "String": als(4, 4),
     "RuntimeType": als(4, 4),
+
+    "Quaternion": als(16, 16),
+    "Guid": als(8, 16),
+    "GameObjectRef": als(8, 16),
+    "Color": als(4, 4),
+    "DateTime": als(8, 8),
+
+    "Uint2": als(4, 8),
+    "Uint3": als(4, 12),
+    "Uint4": als(4, 16),
+    "Int2": als(4, 8),
+    "Int3": als(4, 12),
+    "Int4": als(4, 16),
+    "Float2": als(4, 8),
+    "Float3": als(4, 12),
+    "Float4": als(4, 16),
+    "Mat4": als(16, 64),
+    "Vec2": als(16, 16),
+    "Vec3": als(16, 16),
+    "Vec4": als(16, 16),
+
+    "AABB": als(16, 32),
+    "Capsule": als(16, 48),
+    "Cone": als(16, 32),
+    "LineSegment": als(16, 32),
+    "OBB": als(16, 80),
+    "Plane": als(16, 16),
+    "Point": als(4, 8),
+    "Range": als(4, 8),
+    "RangeI": als(4, 8),
+    "Size": als(4, 8),
+    "Sphere": als(16, 16),
+    "Triangle": als(16, 48),
+    "Cylinder": als(16, 48),
+    "Area": als(16, 48),
+    "Rect": als(4, 16),
+    "Frustum": als(16, 96),
+    "KeyFrame": als(16, 16),
+
+    "Sfix": als(4, 4),
+    "Sfix2": als(4, 8),
+    "Sfix3": als(4, 12),
+    "Sfix4": als(4, 16),
+    
+
 }
 
-hardcoded_native_type_to_type = {
-    'bool': 'Bool',
-    'c8': 'C8',
-    's8': 'S8',
-    'u8': 'U8',
+hardcoded_native_type_to_TypeCode = {
+    # 'bool': 'Bool',
+    # 'c8': 'C8',
+    # 's8': 'S8',
+    # 'u8': 'U8',
 
-    'c16': 'C16',
-    's16': 'S16',
-    'u16': 'U16',
+    # 'c16': 'C16',
+    # 's16': 'S16',
+    # 'u16': 'U16',
+    # 'f16': 'F16',
 
-    's32': 'S32',
-    'u32': 'U32',
-    'f32': 'F32',
+    # 's32': 'S32',
+    # 'u32': 'U32',
+    # 'f32': 'F32',
     'float': 'F32',
     'int': 'S32',
     'size_t': 'U32',
 
-    's64': 'S64',
-    'u64': 'U64',
-    'f64': 'F64',
+    # 's64': 'S64',
+    # 'u64': 'U64',
+    # 'f64': 'F64',
 
-    'Object': 'Object',
-    'userdata': 'UserData'
+    # 'Object': 'Object',
+    # 'userdata': 'UserData',
+
+    # typecode
+    # 'Bool': 'Bool',
+    # 'C8': 'C8',
+    # 'C16': 'C16',
+    # 'S8': 'S8',
+    # 'U8': 'U8',
+    # 'S16': 'S16',
+    # 'U16': 'U16',
+    # 'S32': 'S32',
+    # 'U32': 'U32',
+    # 'S64': 'S64',
+    # 'U64': 'U64',
+    # 'F32': 'F32',
+    # 'F64': 'F64',
+    # 'System.Object': 'Object',
+    # 'via.GameObject': 'Object',
+    # 'via.UserData': 'UserData',
+    # 'Resource': 'Resource',
+    # 'System.String': 'String',
+    # 'System.RuntimeType': 'RuntimeType',
+    # 'Object': 'Object',
+    # 'UserData': 'UserData',
+    # 'Resource': 'Resource',
+    # 'String': 'String',
+    # 'RuntimeType': 'RuntimeType',
+
+    'System.Boolean': 'Bool',
+    'System.Char': 'C8',
+    # 'C16': 'C16',
+    'System.SByte': 'S8',
+    'System.Byte': 'U8',
+    'System.Int16': 'S16',
+    'System.UInt16': 'U16',
+    'System.Int32': 'S32',
+    'System.UInt32': 'U32',
+    'System.Int64': 'S64',
+    'System.UInt64': 'U64',
+    # 'via.f16': 'F16',
+    'System.Single': 'F32',
+    'System.Double': 'F64',
+    # 'System.Guid': 'Guid',
+    # 'via.Guid': 'Guid',
+    # 'via.vec2': 'Vec2',
+    # 'via.vec3': 'Vec3',
+    # 'via.vec4': 'Vec4',
 }
 
+hardcoded_type_code_mapping = {
+    # typecode
+    'System.Action': 'Action',
+    'Struct': 'Struct',
+    'NativeObject': 'NativeObject',
+    'MBString': 'MBString',
+    'System.Enum': 'Enum',
+    'via.Uint2': 'Uint2',
+    'via.Uint3': 'Uint3',
+    'via.Uint4': 'Uint4',
+    'via.Int2': 'Int2',
+    'via.Int3': 'Int3',
+    'via.Int4': 'Int4',
+    'via.Float2': 'Float2',
+    'via.Float3': 'Float3',
+    'via.Float4': 'Float4',
+    'via.Float3x3': 'Float3x3',
+    'via.Float3x4': 'Float3x4',
+    'via.Float4x3': 'Float4x3',
+    'via.Float4x4': 'Float4x4',
+    'via.Half2': 'Half2',
+    'via.Half4': 'Half4',
+    'via.mat3': 'Mat3',
+    'via.mat4': 'Mat4',
+    'via.vecU4': 'VecU4',
+    'via.Quaternion': 'Quaternion',
+    'via.Color': 'Color',
+    'System.DateTime': 'DateTime',
+    'via.AABB': 'AABB',
+    'via.Capsule': 'Capsule',
+    'via.TaperedCapsule': 'TaperedCapsule',
+    'via.Cone': 'Cone',
+    'via.Line': 'Line',
+    'via.LineSegment': 'LineSegment',
+    'via.OBB': 'OBB',
+    'via.Plane': 'Plane',
+    'via.PlaneXZ': 'PlaneXZ',
+    'via.Point': 'Point',
+    'via.Range': 'Range',
+    'via.RangeI': 'RangeI',
+    'via.Ray': 'Ray',
+    'via.RayY': 'RayY',
+    'via.Segment': 'Segment',
+    'via.Size': 'Size',
+    'via.Sphere': 'Sphere',
+    'via.Triangle': 'Triangle',
+    'via.Cylinder': 'Cylinder',
+    'via.Ellipsoid': 'Ellipsoid',
+    'via.Area': 'Area',
+    'via.Torus': 'Torus',
+    'via.Rect': 'Rect',
+    'via.Rect3D': 'Rect3D',
+    'via.Frustum': 'Frustum',
+    'via.KeyFrame': 'KeyFrame',
+    'Uri': 'Uri',
+    'via.GameObjectRef': 'GameObjectRef',
+    'via.Sfix': 'Sfix',
+    'via.Sfix2': 'Sfix2',
+    'via.Sfix3': 'Sfix3',
+    'via.Sfix4': 'Sfix4',
+    'via.Position': 'Position',
+    'System.Decimal': 'Decimal',
+}
 
-def generate_native_name(element, use_p_name, p):
+TypeCode = [
+    "Undefined",
+    "Object",
+    "Action",
+    "Struct",
+    "NativeObject",
+    "Resource",
+    "UserData",
+    "Bool",
+    "C8",
+    "C16",
+    "S8",
+    "U8",
+    "S16",
+    "U16",
+    "S32",
+    "U32",
+    "S64",
+    "U64",
+    "F32",
+    "F64",
+    "String",
+    "MBString",
+    "Enum",
+    "Uint2",
+    "Uint3",
+    "Uint4",
+    "Int2",
+    "Int3",
+    "Int4",
+    "Float2",
+    "Float3",
+    "Float4",
+    "Float3x3",
+    "Float3x4",
+    "Float4x3",
+    "Float4x4",
+    "Half2",
+    "Half4",
+    "Mat3",
+    "Mat4",
+    "Vec2",
+    "Vec3",
+    "Vec4",
+    "VecU4",
+    "Quaternion",
+    "Guid",
+    "Color",
+    "DateTime",
+    "AABB",
+    "Capsule",
+    "TaperedCapsule",
+    "Cone",
+    "Line",
+    "LineSegment",
+    "OBB",
+    "Plane",
+    "PlaneXZ",
+    "Point",
+    "Range",
+    "RangeI",
+    "Ray",
+    "RayY",
+    "Segment",
+    "Size",
+    "Sphere",
+    "Triangle",
+    "Cylinder",
+    "Ellipsoid",
+    "Area",
+    "Torus",
+    "Rect",
+    "Rect3D",
+    "Frustum",
+    "KeyFrame",
+    "Uri",
+    "GameObjectRef",
+    "RuntimeType",
+    "Sfix",
+    "Sfix2",
+    "Sfix3",
+    "Sfix4",
+    "Position",
+    "F16",
+    "Decimal",
+    "End",
+]
+
+TypeCodeSearch = dict([(k.lower(),v) for k,v in hardcoded_native_type_to_TypeCode.items()] + [(a.lower(), a) for a in TypeCode] + [("via."+a.lower(), a) for a in TypeCode] + [("system."+a.lower(), a) for a in TypeCode])
+# print(TypeCodeSearch)
+
+def generate_native_name(element, use_p_name, p, il2cpp_dump={}):
     if element is None:
         os.system("Error")
 
     if element["string"] == True:
         return "String"
     elif element["list"] == True:
-        return generate_native_name(element["element"], False, p)
+        return generate_native_name(element["element"], use_p_name, p, il2cpp_dump)
     elif use_p_name:
-        return hardcoded_native_type_to_type.get(p["type"], "Data")
-    
+        pt = p["type"]
+        t = TypeCodeSearch.get(pt.lower(), "Data")
+        # t = TypeCodeSearch.get(pt, "Data") if t=="Data" else t
+        if t == "Data" and pt.startswith("via."):
+            element = il2cpp_dump.get(pt, None)
+            if element is None:
+                return t
+            parent = element.get('parent', None)
+            if parent is not None:
+                it = TypeCodeSearch.get(parent.lower(), "Data")
+                # it = hardcoded_type_code_mapping.get(parent, "Data") if it=="Data" else it
+                if it != 'Data':
+                    return it
+            chain = element.get('deserializer_chain', None)
+            if chain is not None:
+                for i in reversed(chain):
+                    it = TypeCodeSearch.get(i['name'].lower(), "Data")
+                    # it = hardcoded_type_code_mapping.get(i['name'], "Data") if it=="Data" else it
+                    if it != 'Data':
+                        return it
+        return t
     return "Data"
 
 def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs, prefix = "", i=0, struct_i=0):
@@ -126,9 +392,9 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
                 reflection_properties = dict([v for _, v in sorted(order)])
 
                 for p, field in zip(reflection_properties.values(), layout):
-                    t = hardcoded_native_type_to_type.get(p["type"], "Data")
+                    t = hardcoded_native_type_to_TypeCode.get(p["type"].lower(), "Data")
                     if t == "Data":
-                        continue
+                        pass
                     elif hardcoded_align_sizes[t]["align"] != field["align"]:
                         append_potential_name = False
 
@@ -139,15 +405,20 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
                 rp_value = list(range(0, len(layout)))
 
             for rp_idx, field in enumerate(layout):
-                native_type_name = generate_native_name(field, append_potential_name, rp_value[rp_idx])
+                native_type_name = generate_native_name(field, append_potential_name, rp_value[rp_idx], il2cpp_dump)
                 native_field_name = "v" + str(i)
+                native_org_type_name = ""
                 if append_potential_name:
                     native_field_name += "_" + rp_names[rp_idx]
+                    # native_field_name = rp_names[rp_idx] # without start with v_
+                    native_org_type_name = rp_value[rp_idx]['type']
+                    if native_type_name != "Data" and not native_org_type_name.startswith("via"):
+                        native_org_type_name = "" # those would be sth like "bool" "s32"
 
                 new_entry = {
                     "type": native_type_name,
                     "name": native_field_name,
-                    "original_type": "",
+                    "original_type": native_org_type_name,
                     "align": field["align"],
                     "size": field["size"],
                     "native": True
@@ -188,7 +459,8 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
             code = rsz_entry["code"]
             type = rsz_entry["type"]
 
-            if code == "Struct" and type in il2cpp_dump:
+            # if code == "Struct" and type in il2cpp_dump:
+            if False:
                 nested_entry, nested_str, i, struct_i = generate_field_entries(il2cpp_dump, natives, type, il2cpp_dump[type], use_typedefs, "STRUCT_" + name + "_", i, struct_i)
 
                 if len(nested_entry) > 0:
@@ -247,7 +519,7 @@ def main(out_postfix="", il2cpp_path="", natives_path=None, use_typedefs=False, 
 
     out_str = ""
     out_json = {}
-    
+
     for key, entry in il2cpp_dump.items():
         if entry is None:
             continue
@@ -262,6 +534,13 @@ def main(out_postfix="", il2cpp_path="", natives_path=None, use_typedefs=False, 
             json_entry["fqn"] = entry["fqn"]
         
         json_entry["crc"] = entry["crc"]
+
+        if entry.get("is_generic_type", False):
+            json_entry["element_type"] = [item["type"] for item in entry["generic_arg_types"]]
+        elif entry.get("element_type_name", None) is not None:
+            json_entry["element_type"] = [entry["element_type_name"]]
+        else:
+            json_entry["element_type"] = []
 
         struct_str = "// " + entry["fqn"] + "\n"
         struct_str = struct_str + "struct " + key + " {\n"
