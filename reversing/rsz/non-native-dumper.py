@@ -90,59 +90,14 @@ hardcoded_align_sizes = {
 }
 
 hardcoded_native_type_to_TypeCode = {
-    # 'bool': 'Bool',
-    # 'c8': 'C8',
-    # 's8': 'S8',
-    # 'u8': 'U8',
-
-    # 'c16': 'C16',
-    # 's16': 'S16',
-    # 'u16': 'U16',
-    # 'f16': 'F16',
-
-    # 's32': 'S32',
-    # 'u32': 'U32',
-    # 'f32': 'F32',
     'float': 'F32',
     'int': 'S32',
     'size_t': 'U32',
 
-    # 's64': 'S64',
-    # 'u64': 'U64',
-    # 'f64': 'F64',
-
-    # 'Object': 'Object',
-    # 'userdata': 'UserData',
-
-    # typecode
-    # 'Bool': 'Bool',
-    # 'C8': 'C8',
-    # 'C16': 'C16',
-    # 'S8': 'S8',
-    # 'U8': 'U8',
-    # 'S16': 'S16',
-    # 'U16': 'U16',
-    # 'S32': 'S32',
-    # 'U32': 'U32',
-    # 'S64': 'S64',
-    # 'U64': 'U64',
-    # 'F32': 'F32',
-    # 'F64': 'F64',
-    # 'System.Object': 'Object',
-    # 'via.GameObject': 'Object',
-    # 'via.UserData': 'UserData',
-    # 'Resource': 'Resource',
-    # 'System.String': 'String',
-    # 'System.RuntimeType': 'RuntimeType',
-    # 'Object': 'Object',
-    # 'UserData': 'UserData',
-    # 'Resource': 'Resource',
-    # 'String': 'String',
-    # 'RuntimeType': 'RuntimeType',
+    'via.GameObject': 'Object',
 
     'System.Boolean': 'Bool',
     'System.Char': 'C8',
-    # 'C16': 'C16',
     'System.SByte': 'S8',
     'System.Byte': 'U8',
     'System.Int16': 'S16',
@@ -151,82 +106,12 @@ hardcoded_native_type_to_TypeCode = {
     'System.UInt32': 'U32',
     'System.Int64': 'S64',
     'System.UInt64': 'U64',
-    # 'via.f16': 'F16',
     'System.Single': 'F32',
     'System.Double': 'F64',
-    # 'System.Guid': 'Guid',
-    # 'via.Guid': 'Guid',
-    # 'via.vec2': 'Vec2',
-    # 'via.vec3': 'Vec3',
-    # 'via.vec4': 'Vec4',
-}
-
-hardcoded_type_code_mapping = {
-    # typecode
-    'System.Action': 'Action',
-    'Struct': 'Struct',
-    'NativeObject': 'NativeObject',
-    'MBString': 'MBString',
-    'System.Enum': 'Enum',
-    'via.Uint2': 'Uint2',
-    'via.Uint3': 'Uint3',
-    'via.Uint4': 'Uint4',
-    'via.Int2': 'Int2',
-    'via.Int3': 'Int3',
-    'via.Int4': 'Int4',
-    'via.Float2': 'Float2',
-    'via.Float3': 'Float3',
-    'via.Float4': 'Float4',
-    'via.Float3x3': 'Float3x3',
-    'via.Float3x4': 'Float3x4',
-    'via.Float4x3': 'Float4x3',
-    'via.Float4x4': 'Float4x4',
-    'via.Half2': 'Half2',
-    'via.Half4': 'Half4',
-    'via.mat3': 'Mat3',
-    'via.mat4': 'Mat4',
-    'via.vecU4': 'VecU4',
-    'via.Quaternion': 'Quaternion',
-    'via.Color': 'Color',
-    'System.DateTime': 'DateTime',
-    'via.AABB': 'AABB',
-    'via.Capsule': 'Capsule',
-    'via.TaperedCapsule': 'TaperedCapsule',
-    'via.Cone': 'Cone',
-    'via.Line': 'Line',
-    'via.LineSegment': 'LineSegment',
-    'via.OBB': 'OBB',
-    'via.Plane': 'Plane',
-    'via.PlaneXZ': 'PlaneXZ',
-    'via.Point': 'Point',
-    'via.Range': 'Range',
-    'via.RangeI': 'RangeI',
-    'via.Ray': 'Ray',
-    'via.RayY': 'RayY',
-    'via.Segment': 'Segment',
-    'via.Size': 'Size',
-    'via.Sphere': 'Sphere',
-    'via.Triangle': 'Triangle',
-    'via.Cylinder': 'Cylinder',
-    'via.Ellipsoid': 'Ellipsoid',
-    'via.Area': 'Area',
-    'via.Torus': 'Torus',
-    'via.Rect': 'Rect',
-    'via.Rect3D': 'Rect3D',
-    'via.Frustum': 'Frustum',
-    'via.KeyFrame': 'KeyFrame',
-    'Uri': 'Uri',
-    'via.GameObjectRef': 'GameObjectRef',
-    'via.Sfix': 'Sfix',
-    'via.Sfix2': 'Sfix2',
-    'via.Sfix3': 'Sfix3',
-    'via.Sfix4': 'Sfix4',
-    'via.Position': 'Position',
-    'System.Decimal': 'Decimal',
 }
 
 TypeCode = [
-    "Undefined",
+    # "Undefined",
     "Object",
     "Action",
     "Struct",
@@ -310,7 +195,7 @@ TypeCode = [
     "Position",
     "F16",
     "Decimal",
-    "End",
+    # "End",
 ]
 
 TypeCodeSearch = dict([(k.lower(),v) for k,v in hardcoded_native_type_to_TypeCode.items()] + [(a.lower(), a) for a in TypeCode] + [("via."+a.lower(), a) for a in TypeCode] + [("system."+a.lower(), a) for a in TypeCode])
@@ -327,7 +212,6 @@ def generate_native_name(element, use_p_name, p, il2cpp_dump={}):
     elif use_p_name:
         pt = p["type"]
         t = TypeCodeSearch.get(pt.lower(), "Data")
-        # t = TypeCodeSearch.get(pt, "Data") if t=="Data" else t
         if t == "Data" and pt.startswith("via."):
             element = il2cpp_dump.get(pt, None)
             if element is None:
@@ -335,14 +219,12 @@ def generate_native_name(element, use_p_name, p, il2cpp_dump={}):
             parent = element.get('parent', None)
             if parent is not None:
                 it = TypeCodeSearch.get(parent.lower(), "Data")
-                # it = hardcoded_type_code_mapping.get(parent, "Data") if it=="Data" else it
                 if it != 'Data':
                     return it
             chain = element.get('deserializer_chain', None)
             if chain is not None:
                 for i in reversed(chain):
                     it = TypeCodeSearch.get(i['name'].lower(), "Data")
-                    # it = hardcoded_type_code_mapping.get(i['name'], "Data") if it=="Data" else it
                     if it != 'Data':
                         return it
         return t
@@ -392,7 +274,7 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
                 reflection_properties = dict([v for _, v in sorted(order)])
 
                 for p, field in zip(reflection_properties.values(), layout):
-                    t = hardcoded_native_type_to_TypeCode.get(p["type"].lower(), "Data")
+                    t = TypeCodeSearch.get(p["type"].lower(), "Data")
                     if t == "Data":
                         pass
                     elif hardcoded_align_sizes[t]["align"] != field["align"]:
