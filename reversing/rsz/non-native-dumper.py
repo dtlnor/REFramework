@@ -89,8 +89,6 @@ hardcoded_align_sizes = {
     "Sfix2": als(4, 8),
     "Sfix3": als(4, 12),
     "Sfix4": als(4, 16),
-    
-
 }
 
 hardcoded_native_type_to_TypeCode = {

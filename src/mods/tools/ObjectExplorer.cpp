@@ -1933,7 +1933,6 @@ void ObjectExplorer::generate_sdk() {
             auto reflection_property_index = 0;
             for (auto i = descriptors; i != descriptors + fields->variables->num; ++i) {
                 auto variable = *i;
-                reflection_property_index++;
 
                 if (variable == nullptr) {
                     continue;
@@ -1978,7 +1977,7 @@ void ObjectExplorer::generate_sdk() {
                 prop_entry = {
                     {"getter", (std::stringstream{} << "0x" << std::hex << get_original_va(variable->function)).str()},
                     {"type", field_t_name},
-                    {"order", reflection_property_index},
+                    {"order", reflection_property_index++},
                 };
 #endif
             
