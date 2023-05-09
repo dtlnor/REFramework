@@ -48,6 +48,8 @@ hardcoded_align_sizes = {
     "GameObjectRef": als(8, 16),
     "Color": als(4, 4),
     "DateTime": als(8, 8),
+    # Struct could have variable size and alignment depends on its element. We set to (1, 1) to avoid division or modulo by zero.
+    "Struct": als(1, 1),
     # Enum could have variable size and alignment, we fallback to its base type. So leave this here is just for safty.
     "Enum": als(4, 4),
 
