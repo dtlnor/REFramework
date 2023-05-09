@@ -229,8 +229,7 @@ def generate_native_name(element, use_potential_name, reflection_property, il2cp
                     return "String"
                 
             return type_code
-        else:
-            return "String"
+        return "String"
     elif element["list"] == True:
         return generate_native_name(element["element"], use_potential_name, reflection_property, il2cpp_dump)
     elif use_potential_name and reflection_property is not None:
