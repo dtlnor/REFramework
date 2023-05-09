@@ -48,6 +48,7 @@ hardcoded_align_sizes = {
     "GameObjectRef": als(8, 16),
     "Color": als(4, 4),
     "DateTime": als(8, 8),
+    "Enum": als(4, 4),
 
     "Uint2": als(4, 8),
     "Uint3": als(4, 12),
@@ -201,33 +202,34 @@ TypeCode = [
 TypeCodeSearch = dict([(k.lower(),v) for k,v in hardcoded_native_type_to_TypeCode.items()] + [(a.lower(), a) for a in TypeCode] + [("via."+a.lower(), a) for a in TypeCode] + [("system."+a.lower(), a) for a in TypeCode])
 # print(TypeCodeSearch)
 
-def generate_native_name(element, use_p_name, p, il2cpp_dump={}):
+def generate_native_name(element, use_potential_name, reflection_property, il2cpp_dump={}):
     if element is None:
         os.system("Error")
 
     if element["string"] == True:
         return "String"
     elif element["list"] == True:
-        return generate_native_name(element["element"], use_p_name, p, il2cpp_dump)
-    elif use_p_name:
-        pt = p["type"]
-        t = TypeCodeSearch.get(pt.lower(), "Data")
-        if t == "Data" and pt.startswith("via."):
-            element = il2cpp_dump.get(pt, None)
+        return generate_native_name(element["element"], use_potential_name, reflection_property, il2cpp_dump)
+    elif use_potential_name and reflection_property is not None:
+        property_type = reflection_property["type"]
+        type_code = TypeCodeSearch.get(property_type.lower(), "Data")
+        if type_code == "Data" and property_type.startswith("via."):
+            element = il2cpp_dump.get(property_type, None)
             if element is None:
-                return t
+                return type_code
             parent = element.get('parent', None)
             if parent is not None:
-                it = TypeCodeSearch.get(parent.lower(), "Data")
-                if it != 'Data':
-                    return it
+                parent_type_code = TypeCodeSearch.get(parent.lower(), "Data")
+                if parent_type_code != 'Data':
+                    return parent_type_code
             chain = element.get('deserializer_chain', None)
             if chain is not None:
-                for i in reversed(chain):
-                    it = TypeCodeSearch.get(i['name'].lower(), "Data")
-                    if it != 'Data':
-                        return it
-        return t
+                for chain_i in reversed(chain):
+                    chain_type_code = TypeCodeSearch.get(chain_i['name'].lower(), "Data")
+                    if chain_type_code != 'Data':
+                        return chain_type_code
+        return type_code
+    
     return "Data"
 
 def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs, prefix = "", i=0, struct_i=0):
@@ -236,7 +238,7 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
 
     fields_out = []
     struct_str = ""
-    max_parent_level = 16
+    max_parent_level = 10
 
     # Go through parents until we run into a native that we need to insert at the top of the structure
     for f in range(0, max_parent_level):
@@ -263,37 +265,43 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
             
             layout = chain["layout"]
 
+            # Get reflection_properties for guessing native type name.
             reflection_properties = il2cpp_dump[chain["name"]].get("reflection_properties", None)
             append_potential_name = False
 
+            # If len not match, we give-up
             if len(layout) == len(reflection_properties):
                 append_potential_name = True
 
                 # sort reflection_properties by its native order
-                order = [(int(v["order"]), (k,v)) for k, v in reflection_properties.items()]
-                reflection_properties = dict([v for _, v in sorted(order)])
+                order_rp = [(int(v["order"]), (k,v)) for k, v in reflection_properties.items()]
+                reflection_properties = dict([v for _, v in sorted(order_rp)])
 
-                for p, field in zip(reflection_properties.values(), layout):
-                    t = TypeCodeSearch.get(p["type"].lower(), "Data")
-                    if t == "Data":
+                # check align and size to increase accuracy
+                # rp_type_codes = list()
+                for (property_name, property_value), field in zip(reflection_properties.items(), layout):
+                    property_type_code = generate_native_name(field, True, property_value, il2cpp_dump)
+                    # rp_type_codes.append(property_type_code)
+                    reflection_properties[property_name]["TypeCode"] = property_type_code
+                    if property_type_code == "Data":
                         pass
-                    elif hardcoded_align_sizes[t]["align"] != field["align"]:
+                    elif hardcoded_align_sizes[property_type_code]["align"] != field["align"] or hardcoded_align_sizes[property_type_code]["size"] != field["size"]:
                         append_potential_name = False
 
             if append_potential_name:
                 rp_names = list(reflection_properties.keys())
-                rp_value = list(reflection_properties.values())
-            else:
-                rp_value = list(range(0, len(layout)))
+                rp_values = list(reflection_properties.values())
 
             for rp_idx, field in enumerate(layout):
-                native_type_name = generate_native_name(field, append_potential_name, rp_value[rp_idx], il2cpp_dump)
                 native_field_name = "v" + str(i)
-                native_org_type_name = ""
-                if append_potential_name:
+                if not append_potential_name:
+                    native_type_name = generate_native_name(field, False, None)
+                    native_org_type_name = ""
+                else:
+                    native_type_name = rp_values[rp_idx]["TypeCode"]
                     native_field_name += "_" + rp_names[rp_idx]
                     # native_field_name = rp_names[rp_idx] # without start with v_
-                    native_org_type_name = rp_value[rp_idx]['type']
+                    native_org_type_name = rp_values[rp_idx]['type']
                     if native_type_name != "Data" and not native_org_type_name.startswith("via"):
                         native_org_type_name = "" # those would be sth like "bool" "s32"
 
