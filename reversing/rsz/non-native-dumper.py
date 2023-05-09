@@ -48,6 +48,7 @@ hardcoded_align_sizes = {
     "GameObjectRef": als(8, 16),
     "Color": als(4, 4),
     "DateTime": als(8, 8),
+    # Enum could have variable size and alignment, we fallback to its base type. So leave this here is just for safty.
     "Enum": als(4, 4),
 
     "Uint2": als(4, 8),
@@ -207,30 +208,67 @@ def generate_native_name(element, use_potential_name, reflection_property, il2cp
         os.system("Error")
 
     if element["string"] == True:
-        return "String"
+        if use_potential_name:
+            property_type = reflection_property["type"]
+            type_code = TypeCodeSearch.get(property_type.lower(), "Data")
+
+            if type_code == "Data" and property_type.startswith("via."):
+                native_element = il2cpp_dump.get(property_type, None)
+
+                if native_element is None:
+                    if (property_type.endswith("ResourceHandle") or property_type.endswith("ResorceHandle")) and property_type.startswith("via."):
+                        property_type = property_type.replace("ResourceHandle", "ResourceHolder")
+                        property_type = property_type.replace("ResorceHandle", "ResorceHolder") # arrrrrrrrrr
+                        native_element = il2cpp_dump.get(property_type, None)
+                        chain = native_element.get('deserializer_chain', None)
+
+                        if "via.ResourceHolder" in [a['name'] for a in chain]: # ResourcePath
+                            return "Resource"
+            else:
+                if type_code in ["C16","C8","String"]:
+                    return "String"
+                
+            return type_code
+        else:
+            return "String"
     elif element["list"] == True:
         return generate_native_name(element["element"], use_potential_name, reflection_property, il2cpp_dump)
     elif use_potential_name and reflection_property is not None:
         property_type = reflection_property["type"]
         type_code = TypeCodeSearch.get(property_type.lower(), "Data")
+
         if type_code == "Data" and property_type.startswith("via."):
-            element = il2cpp_dump.get(property_type, None)
-            if element is None:
+            native_element = il2cpp_dump.get(property_type, None)
+
+            if native_element is None:
                 return type_code
-            parent = element.get('parent', None)
+
+            parent = native_element.get('parent', None)
             if parent is not None:
                 parent_type_code = TypeCodeSearch.get(parent.lower(), "Data")
                 if parent_type_code != 'Data':
                     return parent_type_code
-            chain = element.get('deserializer_chain', None)
+                
+            chain = native_element.get('deserializer_chain', None)
             if chain is not None:
                 for chain_i in reversed(chain):
                     chain_type_code = TypeCodeSearch.get(chain_i['name'].lower(), "Data")
                     if chain_type_code != 'Data':
                         return chain_type_code
+        
         return type_code
-    
     return "Data"
+
+def enum_fallback(reflection_property, il2cpp_dump={}):
+    native_element = il2cpp_dump.get(reflection_property["type"], None)
+    # Enum type should have and only have one "RSZ" field. These check are just for safety. 
+    if native_element is None:
+        return "Enum"
+    if "RSZ" not in native_element:
+        return "Enum"
+    if len(native_element["RSZ"]) != 1:
+        return "Enum"
+    return native_element["RSZ"][0]["code"]
 
 def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs, prefix = "", i=0, struct_i=0):
     e = il2cpp_entry
@@ -280,11 +318,14 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
                 # check align and size to increase accuracy
                 for (property_name, property_value), field in zip(reflection_properties.items(), layout):
                     property_type_code = generate_native_name(field, True, property_value, il2cpp_dump)
+
+                    if property_type_code == "Enum":
+                        property_type_code = enum_fallback(property_value, il2cpp_dump)
+
                     reflection_properties[property_name]["TypeCode"] = property_type_code
 
                     if property_type_code == "Data":
                         continue
-
                     if "element" in field and "list" in field and field["list"] == True:
                         field_align = field["element"]["align"]
                         field_size = field["element"]["size"]
