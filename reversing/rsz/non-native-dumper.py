@@ -283,9 +283,18 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
                     property_type_code = generate_native_name(field, True, property_value, il2cpp_dump)
                     # rp_type_codes.append(property_type_code)
                     reflection_properties[property_name]["TypeCode"] = property_type_code
+                    if "element" in field and "list" in field and field["list"] == True:
+                        field_align = field["element"]["align"]
+                        field_size = field["element"]["size"]
+                    else:
+                        field_align = field["align"]
+                        field_size = field["size"]
+                    property_align = hardcoded_align_sizes[property_type_code]["align"]
+                    property_size = hardcoded_align_sizes[property_type_code]["size"]
+
                     if property_type_code == "Data":
                         pass
-                    elif hardcoded_align_sizes[property_type_code]["align"] != field["align"] or hardcoded_align_sizes[property_type_code]["size"] != field["size"]:
+                    elif property_align != field_align or property_size != field_size:
                         append_potential_name = False
 
             if append_potential_name:
