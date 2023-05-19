@@ -418,6 +418,20 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
                         code = code_typedefs[code]
                     else:
                         code = "RSZ" + code
+                
+                if rsz_entry["array"] == 1:
+                    array_type = il2cpp_dump[type]
+                    if array_type.get("element_type_name", None) is not None:
+                        type = array_type["element_type_name"]
+                    elif array_type.get("is_generic_type", False):
+                        array_element_types = [item["type"] for item in array_type["generic_arg_types"]]
+                        if len(array_element_types) == 1:
+                            type = array_element_types[0]
+                        else:
+                            print(rsz_entry)
+                    else:
+                        print(rsz_entry)
+
 
                 '''
                 if rsz_entry["array"] == True:
@@ -475,12 +489,12 @@ def main(out_postfix="", il2cpp_path="", natives_path=None, use_typedefs=False, 
         
         json_entry["crc"] = entry["crc"]
 
-        if entry.get("is_generic_type", False):
-            json_entry["element_type"] = [item["type"] for item in entry["generic_arg_types"]]
-        elif entry.get("element_type_name", None) is not None:
-            json_entry["element_type"] = [entry["element_type_name"]]
-        else:
-            json_entry["element_type"] = []
+        # if entry.get("is_generic_type", False):
+        #     json_entry["element_type"] = [item["type"] for item in entry["generic_arg_types"]]
+        # elif entry.get("element_type_name", None) is not None:
+        #     json_entry["element_type"] = [entry["element_type_name"]]
+        # else:
+        #     json_entry["element_type"] = []
 
         struct_str = "// " + entry["fqn"] + "\n"
         struct_str = struct_str + "struct " + key + " {\n"
