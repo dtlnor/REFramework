@@ -51,7 +51,6 @@ hardcoded_align_sizes = {
     # Struct could have variable size and alignment depends on its element. We set to (1, 1) to avoid division or modulo by zero.
     "Struct": als(1, 1),
     # Enum could have variable size and alignment, we fallback to its base type. So leave this here is just for safty.
-    "Enum": als(4, 4),
 
     "Uint2": als(4, 8),
     "Uint3": als(4, 12),
