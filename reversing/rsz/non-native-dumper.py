@@ -212,20 +212,22 @@ def generate_native_name(element, use_potential_name, reflection_property, il2cp
             if type_code == "Data" and property_type.startswith("via."):
                 native_element = il2cpp_dump.get(property_type, None)
 
+                
                 if native_element is None:
                     if (property_type.endswith("ResourceHandle") or property_type.endswith("ResorceHandle")) and property_type.startswith("via."):
                         property_type = property_type.replace("ResourceHandle", "ResourceHolder")
                         property_type = property_type.replace("ResorceHandle", "ResorceHolder") # arrrrrrrrrr
+
                         native_element = il2cpp_dump.get(property_type, None)
                         chain = native_element.get('deserializer_chain', None)
 
                         if "via.ResourceHolder" in [a['name'] for a in chain]: # ResourcePath
                             return "Resource"
-            else:
-                if type_code in ["C16","C8","String"]:
-                    return "String"
-                
-            return type_code
+                    elif property_type == "via.resource_handle":
+                        return "Resource"
+            # else:
+            #     if type_code in ["C16","C8","String"]:
+            #         return "String"
         return "String"
     elif element["list"] == True:
         return generate_native_name(element["element"], use_potential_name, reflection_property, il2cpp_dump)
