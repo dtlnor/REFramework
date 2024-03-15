@@ -1,4 +1,5 @@
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <imnodes.h>
 
 #include "../ScriptRunner.hpp"
@@ -1104,6 +1105,28 @@ float calc_item_width() {
     return ImGui::CalcItemWidth();
 }
 
+void item_size(sol::object pos, sol::object size, sol::object text_baseline_y) {
+    if (text_baseline_y.is<float>()) {
+        ImGui::ItemSize(ImRect{create_imvec2(pos), create_imvec2(size)}, text_baseline_y.as<float>());
+    } else {
+        ImGui::ItemSize(ImRect{create_imvec2(pos), create_imvec2(size)});
+    }
+}
+
+bool item_add(const char* label, sol::object pos, sol::object size) {
+    if (label == nullptr) {
+        label = "";
+    }
+
+    const auto window = ImGui::GetCurrentWindow();
+
+    if (window == nullptr) {
+        return false;
+    }
+
+    return ImGui::ItemAdd(ImRect{create_imvec2(pos), create_imvec2(size)}, window->GetID(label));
+}
+
 void push_style_color(int style_color, sol::object color_obj) {
     if (color_obj.is<int>()) {
         ImGui::PushStyleColor((ImGuiCol)style_color, (ImU32)color_obj.as<int>());
@@ -1185,6 +1208,14 @@ void set_clipboard(sol::object data) {
 
 const char* get_clipboard() {
     return ImGui::GetClipboardText();
+}
+
+void progress_bar(float progress, sol::object size, const char* overlay ){
+    if (overlay == nullptr) {
+        overlay = "";
+    }
+
+    ImGui::ProgressBar(progress, create_imvec2(size), overlay);
 }
 
 bool begin_table(const char* str_id, int column, sol::object flags_obj, sol::object outer_size_obj, sol::object inner_width_obj) {
@@ -1282,6 +1313,26 @@ void table_set_bg_color_vec4(ImGuiTableBgTarget target, Vector4f color, sol::obj
 ImGuiTableSortSpecs* table_get_sort_specs() {
     return ImGui::TableGetSortSpecs();
 }
+
+// Window Drawlist
+void draw_list_path_clear() {
+    if (auto dl = ImGui::GetWindowDrawList(); dl != nullptr) {
+        dl->PathClear();
+    }
+}
+
+void draw_list_path_line_to(sol::object pos_obj) {
+    auto pos = create_imvec2(pos_obj);
+    if (auto dl = ImGui::GetWindowDrawList(); dl != nullptr) {
+        dl->PathLineTo(pos);
+    }
+}
+
+void draw_list_path_stroke(ImU32 color, bool closed, float thickness) {
+    if (auto dl = ImGui::GetWindowDrawList(); dl != nullptr) {
+        dl->PathStroke(color, closed, thickness);
+    }
+}
 } // namespace api::imgui
 
 namespace api::draw {
@@ -1345,8 +1396,12 @@ std::optional<Vector2f> world_to_screen(sol::object world_pos_object) {
     Vector4f camera_origin{};
     get_position_method->call<void*>(&camera_origin, context, camera_transform);
 
+    camera_origin.w = 1.0f;
+
     Vector4f camera_forward{};
     get_axisz_method->call<void*>(&camera_forward, context, camera_transform);
+
+    camera_forward.w = 1.0f;
 
     // Translate 2d position to 3d position (screen to world)
     Matrix4x4f proj{}, view{};
@@ -1360,7 +1415,7 @@ std::optional<Vector2f> world_to_screen(sol::object world_pos_object) {
     const auto delta = world_pos - camera_origin;
 
     // behind camera
-    if (glm::dot(delta, -camera_forward) <= 0.0f) {
+    if (glm::dot(Vector3f{delta}, Vector3f{-camera_forward}) <= 0.0f) {
         return std::nullopt;
     }
 
@@ -1960,10 +2015,15 @@ void bindings::open_imgui(ScriptState* s) {
     imgui["end_menu"] = api::imgui::end_menu;
     imgui["menu_item"] = api::imgui::menu_item;
     imgui["get_display_size"] = api::imgui::get_display_size;
+
+    // Item
     imgui["push_item_width"] = api::imgui::push_item_width;
     imgui["pop_item_width"] = api::imgui::pop_item_width;
     imgui["set_next_item_width"] = api::imgui::set_next_item_width;
     imgui["calc_item_width"] = api::imgui::calc_item_width;
+    imgui["item_add"] = api::imgui::item_add;
+    imgui["item_size"] = api::imgui::item_size;
+
     imgui["push_style_color"] = api::imgui::push_style_color;
     imgui["pop_style_color"] = api::imgui::pop_style_color;
     imgui["push_style_var"] = api::imgui::push_style_var;
@@ -1976,6 +2036,13 @@ void bindings::open_imgui(ScriptState* s) {
     imgui["set_item_default_focus"] = api::imgui::set_item_default_focus;
     imgui["set_clipboard"] = api::imgui::set_clipboard;
     imgui["get_clipboard"] = api::imgui::get_clipboard;
+    imgui["progress_bar"] = api::imgui::progress_bar;
+
+    // Draw list
+    imgui["draw_list_path_clear"] = api::imgui::draw_list_path_clear;
+    imgui["draw_list_path_line_to"] = api::imgui::draw_list_path_line_to;
+    imgui["draw_list_path_stroke"] = api::imgui::draw_list_path_stroke;
+
 
     // TABLE APIS
     imgui["begin_table"] = api::imgui::begin_table;

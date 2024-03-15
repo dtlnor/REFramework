@@ -168,6 +168,8 @@ REFramework::REFramework(HMODULE reframework_module)
     const auto pre_allocated_buffer = (uintptr_t)AllocateBuffer((LPVOID)halfway_module); // minhook function
     spdlog::info("Preallocated buffer: {:x}", pre_allocated_buffer);
 
+    IntegrityCheckBypass::fix_virtual_protect();
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
@@ -279,7 +281,7 @@ REFramework::REFramework(HMODULE reframework_module)
     startup_lookup_thread->detach();
 #endif
 
-#if defined(RE8) || defined(RE4) || defined(MHRISE)
+#if defined(REENGINE_AT)
     ULONG_PTR loader_magic = 0;
     auto lock_loader = (PFN_LdrLockLoaderLock)GetProcAddress(ntdll, "LdrLockLoaderLock");
     auto unlock_loader = (PFN_LdrUnlockLoaderLock)GetProcAddress(ntdll, "LdrUnlockLoaderLock");
@@ -294,15 +296,17 @@ REFramework::REFramework(HMODULE reframework_module)
 
     IntegrityCheckBypass::ignore_application_entries();
 
-#if defined(RE8) || defined(RE4)
+#if defined(RE8) || defined(RE4) || defined(SF6)
     // Also done on RE4 because some of the scans are the same.
     IntegrityCheckBypass::immediate_patch_re8();
 #endif
 
-#if defined(RE4)
+#if defined(RE4) || defined(SF6)
     // Fixes new code added in RE4 only.
     IntegrityCheckBypass::immediate_patch_re4();
 #endif
+    // Seen in SF6
+    IntegrityCheckBypass::remove_stack_destroyer();
     suspender.resume();
 #endif
 
@@ -417,11 +421,11 @@ REFramework::~REFramework() {
     m_d3d_monitor_thread.reset();
 
     if (m_is_d3d11) {
-        ImGui_ImplDX11_Shutdown();
+        deinit_d3d11();
     }
 
     if (m_is_d3d12) {
-        ImGui_ImplDX12_Shutdown();
+        deinit_d3d12();
     }
 
     ImGui_ImplWin32_Shutdown();
@@ -501,7 +505,7 @@ void REFramework::on_frame_d3d11() {
         return;
     }
 
-    const bool is_init_ok = m_error.empty() && m_game_data_initialized;
+    bool is_init_ok = m_error.empty() && m_game_data_initialized;
 
     if (is_init_ok) {
         // Write default config once if it doesn't exist.
@@ -511,6 +515,8 @@ void REFramework::on_frame_d3d11() {
             }
         }
     }
+
+    is_init_ok = first_frame_initialize();
 
     if (!m_has_frame) {
         if (!is_init_ok) {
@@ -604,7 +610,7 @@ void REFramework::on_frame_d3d12() {
         return;
     }
 
-    const bool is_init_ok = m_error.empty() && m_game_data_initialized;
+    bool is_init_ok = m_error.empty() && m_game_data_initialized;
 
     if (is_init_ok) {
         // Write default config once if it doesn't exist.
@@ -615,67 +621,107 @@ void REFramework::on_frame_d3d12() {
         }
     }
 
+    auto do_per_frame_thing = [&]() {
+        ImGui::GetIO().BackendRendererUserData = m_d3d12.imgui_backend_datas[0];
+        const auto prev_cleanup = m_wants_device_object_cleanup;
+        invalidate_device_objects();
+        ImGui_ImplDX12_NewFrame();
+
+        ImGui::GetIO().BackendRendererUserData = m_d3d12.imgui_backend_datas[1];
+        m_wants_device_object_cleanup = prev_cleanup;
+        invalidate_device_objects();
+        ImGui_ImplDX12_NewFrame();
+    };
+
+    is_init_ok = first_frame_initialize();
+
     if (!m_has_frame) {
         if (!is_init_ok) {
             update_fonts();
-            invalidate_device_objects();
-
-            ImGui_ImplDX12_NewFrame();
+            do_per_frame_thing();
             // hooks don't run until after initialization, so we just render the imgui window while initalizing.
             run_imgui_frame(true);
         } else {   
             return;
         }
     } else {
-        invalidate_device_objects();
-        ImGui_ImplDX12_NewFrame();
+        do_per_frame_thing();
     }
 
     if (is_init_ok) {
         m_mods->on_present();
     }
 
-    m_d3d12.cmd_allocator->Reset();
-    m_d3d12.cmd_list->Reset(m_d3d12.cmd_allocator.Get(), nullptr);
+    if (m_d3d12.cmd_ctxs.empty()) {
+        return;
+    }
 
-    // Draw to our render target.
-    D3D12_RESOURCE_BARRIER barrier{};
-    barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    barrier.Transition.pResource = m_d3d12.get_rt(D3D12::RTV::IMGUI).Get();
-    barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    m_d3d12.cmd_list->ResourceBarrier(1, &barrier);
+    auto& cmd_ctx = m_d3d12.cmd_ctxs[m_d3d12.cmd_ctx_index++ % m_d3d12.cmd_ctxs.size()];
 
-    float clear_color[]{0.0f, 0.0f, 0.0f, 0.0f};
-    D3D12_CPU_DESCRIPTOR_HANDLE rts[1]{};
-    m_d3d12.cmd_list->ClearRenderTargetView(m_d3d12.get_cpu_rtv(device, D3D12::RTV::IMGUI), clear_color, 0, nullptr);
-    rts[0] = m_d3d12.get_cpu_rtv(device, D3D12::RTV::IMGUI);
-    m_d3d12.cmd_list->OMSetRenderTargets(1, rts, FALSE, NULL);
-    m_d3d12.cmd_list->SetDescriptorHeaps(1, m_d3d12.srv_desc_heap.GetAddressOf());
-    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_d3d12.cmd_list.Get());
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-    m_d3d12.cmd_list->ResourceBarrier(1, &barrier);
+    if (cmd_ctx == nullptr) {
+        return;
+    }
 
-    // Draw to the back buffer.
     auto swapchain = m_d3d12_hook->get_swap_chain();
-    auto bb_index = swapchain->GetCurrentBackBufferIndex();
-    barrier.Transition.pResource = m_d3d12.rts[bb_index].Get();
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    m_d3d12.cmd_list->ResourceBarrier(1, &barrier);
-    rts[0] = m_d3d12.get_cpu_rtv(device, (D3D12::RTV)bb_index);
-    m_d3d12.cmd_list->OMSetRenderTargets(1, rts, FALSE, NULL);
-    m_d3d12.cmd_list->SetDescriptorHeaps(1, m_d3d12.srv_desc_heap.GetAddressOf());
-    ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_d3d12.cmd_list.Get());
-    barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-    m_d3d12.cmd_list->ResourceBarrier(1, &barrier);
-    m_d3d12.cmd_list->Close();
+    const auto bb_index = swapchain->GetCurrentBackBufferIndex();
 
-    command_queue->ExecuteCommandLists(1, (ID3D12CommandList* const*)m_d3d12.cmd_list.GetAddressOf());
+    // Test if our RT for this index is valid.
+    if (m_d3d12.get_rt((D3D12::RTV)bb_index) == nullptr) {
+        spdlog::error("RTV for index {} is null, reinitializing...", bb_index);
+        deinit_d3d12();
+        m_has_frame = false;
+        m_first_initialize = false;
+        m_initialized = false;
+        return;
+    }
+
+    cmd_ctx->wait(INFINITE);
+    {
+        std::scoped_lock _{ cmd_ctx->mtx };
+        cmd_ctx->has_commands = true;
+
+        // Draw to our render target.
+        D3D12_RESOURCE_BARRIER barrier{};
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+        barrier.Transition.pResource = m_d3d12.get_rt(D3D12::RTV::IMGUI).Get();
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        cmd_ctx->cmd_list->ResourceBarrier(1, &barrier);
+
+        float clear_color[]{0.0f, 0.0f, 0.0f, 0.0f};
+        D3D12_CPU_DESCRIPTOR_HANDLE rts[1]{};
+        cmd_ctx->cmd_list->ClearRenderTargetView(m_d3d12.get_cpu_rtv(device, D3D12::RTV::IMGUI), clear_color, 0, nullptr);
+        rts[0] = m_d3d12.get_cpu_rtv(device, D3D12::RTV::IMGUI);
+        cmd_ctx->cmd_list->OMSetRenderTargets(1, rts, FALSE, NULL);
+        cmd_ctx->cmd_list->SetDescriptorHeaps(1, m_d3d12.srv_desc_heap.GetAddressOf());
+
+        ImGui::GetIO().BackendRendererUserData = m_d3d12.imgui_backend_datas[1];
+        ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmd_ctx->cmd_list.Get());
+        
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        cmd_ctx->cmd_list->ResourceBarrier(1, &barrier);
+
+        // Draw to the back buffer.
+        barrier.Transition.pResource = m_d3d12.rts[bb_index].Get();
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        cmd_ctx->cmd_list->ResourceBarrier(1, &barrier);
+        rts[0] = m_d3d12.get_cpu_rtv(device, (D3D12::RTV)bb_index);
+        cmd_ctx->cmd_list->OMSetRenderTargets(1, rts, FALSE, NULL);
+        cmd_ctx->cmd_list->SetDescriptorHeaps(1, m_d3d12.srv_desc_heap.GetAddressOf());
+
+        ImGui::GetIO().BackendRendererUserData = m_d3d12.imgui_backend_datas[0];
+        ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), cmd_ctx->cmd_list.Get());
+
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+        cmd_ctx->cmd_list->ResourceBarrier(1, &barrier);
+
+        cmd_ctx->execute();
+    }
 
     if (is_init_ok) {
         m_mods->on_post_frame();
@@ -1603,6 +1649,58 @@ bool REFramework::initialize_windows_message_hook() {
     return false;
 }
 
+// Ran on the first valid frame after pre-initialization of mods has taken place and hasn't failed
+// This one allows mods to run any initialization code in the context of the D3D thread (like VR code)
+// It also is the one that actually loads any config files
+bool REFramework::first_frame_initialize() {
+    const bool is_init_ok = m_error.empty() && m_game_data_initialized;
+
+    if (!is_init_ok || !m_first_frame_d3d_initialize) {
+        return is_init_ok;
+    }
+
+    std::scoped_lock _{get_hook_monitor_mutex()};
+
+    spdlog::info("Running first frame D3D initialization of mods...");
+
+    m_first_frame_d3d_initialize = false;
+    auto e = m_mods->on_initialize_d3d_thread();
+
+    if (e) {
+        if (e->empty()) {
+            m_error = "An unknown error has occurred.";
+        } else {
+            m_error = *e;
+        }
+
+        spdlog::error("Initialization of mods failed. Reason: {}", m_error);
+        m_game_data_initialized = false;
+        m_mods_fully_initialized = false;
+        return false;
+    } else {
+        // Do an initial config save to set the default values for the frontend
+        save_config();
+        m_mods_fully_initialized = true;
+    }
+
+    // Troubleshooting by logging loaded modules
+    // helps us figure out if someone has conflicting software running
+    try {
+        spdlog::info("Logging loaded modules...");
+
+        const auto loaded_modules = utility::get_loaded_module_names();
+
+        for (const auto& name : loaded_modules) {
+            spdlog::info("Loaded module: {}", utility::narrow(name));
+        }
+    } catch(...) {
+        spdlog::error("Failed to get loaded modules.");
+    }
+
+
+    return true;
+}
+
 void REFramework::call_on_frame() {
     const bool is_init_ok = m_error.empty() && m_game_data_initialized;
 
@@ -1717,28 +1815,20 @@ bool REFramework::init_d3d12() {
 
     spdlog::info("[D3D12] Creating command allocator...");
 
-    if (FAILED(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_d3d12.cmd_allocator)))) {
-        spdlog::error("[D3D12] Failed to create command allocator.");
-        return false;
-    }
+    m_d3d12.cmd_ctxs.clear();
 
-    spdlog::info("[D3D12] Creating command list...");
+    for (auto i = 0; i < 3; ++i) {
+        auto& ctx = m_d3d12.cmd_ctxs.emplace_back(std::make_unique<d3d12::CommandContext>());
 
-    if (FAILED(device->CreateCommandList(
-            0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_d3d12.cmd_allocator.Get(), nullptr, IID_PPV_ARGS(&m_d3d12.cmd_list)))) {
-        spdlog::error("[D3D12] Failed to create command list.");
-        return false;
-    }
-
-    if (FAILED(m_d3d12.cmd_list->Close())) {
-        spdlog::error("[D3D12] Failed to close command list after creation.");
-        return false;
+        if (!ctx->setup(L"Framework::m_d3d12.cmd_ctx")) {
+            spdlog::error("[D3D12] Failed to create command context.");
+            return false;
+        }
     }
 
     spdlog::info("[D3D12] Creating RTV descriptor heap...");
 
     {
-
         D3D12_DESCRIPTOR_HEAP_DESC desc{};
 
         desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
@@ -1750,6 +1840,8 @@ bool REFramework::init_d3d12() {
             spdlog::error("[D3D12] Failed to create RTV descriptor heap.");
             return false;
         }
+
+        m_d3d12.rtv_desc_heap->SetName(L"Framework::m_d3d12.rtv_desc_heap");
     }
 
     spdlog::info("[D3D12] Creating SRV descriptor heap...");
@@ -1765,6 +1857,8 @@ bool REFramework::init_d3d12() {
             spdlog::error("[D3D12] Failed to create SRV descriptor heap.");
             return false;
         }
+
+        m_d3d12.srv_desc_heap->SetName(L"Framework::m_d3d12.srv_desc_heap");
     }
 
     spdlog::info("[D3D12] Creating render targets...");
@@ -1773,14 +1867,24 @@ bool REFramework::init_d3d12() {
         // Create back buffer rtvs.
         auto swapchain = m_d3d12_hook->get_swap_chain();
 
-        for (auto i = 0; i <= (int)D3D12::RTV::BACKBUFFER_3; ++i) {
+        for (auto i = 0; i <= (int)D3D12::RTV::BACKBUFFER_2; ++i) {
             if (SUCCEEDED(swapchain->GetBuffer(i, IID_PPV_ARGS(&m_d3d12.rts[i])))) {
                 device->CreateRenderTargetView(m_d3d12.rts[i].Get(), nullptr, m_d3d12.get_cpu_rtv(device, (D3D12::RTV)i));
+            } else {
+                spdlog::error("[D3D12] Failed to get back buffer for rtv {}", i);
+                m_d3d12.rts[i].Reset(); // just in case
             }
         }
 
         // Create our imgui and blank rts.
         auto& backbuffer = m_d3d12.get_rt(D3D12::RTV::BACKBUFFER_0);
+
+        if (backbuffer == nullptr) {
+            spdlog::error("[D3D12] Failed to get first back buffer RTV.");
+            deinit_d3d12();
+            return false;
+        }
+
         auto desc = backbuffer->GetDesc();
 
         spdlog::info("[D3D12] Back buffer format is {}", desc.Format);
@@ -1791,7 +1895,7 @@ bool REFramework::init_d3d12() {
         props.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 
         auto d3d12_rt_desc = desc;
-        d3d12_rt_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // For VR
+        d3d12_rt_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM; // For VR
 
         D3D12_CLEAR_VALUE clear_value{};
         clear_value.Format = d3d12_rt_desc.Format;
@@ -1810,11 +1914,13 @@ bool REFramework::init_d3d12() {
             return false;
         }
 
+        m_d3d12.get_rt(D3D12::RTV::BLANK)->SetName(L"Framework::m_d3d12.rts[BLANK]");
+
         // Create imgui and blank rtvs and srvs.
         device->CreateRenderTargetView(m_d3d12.get_rt(D3D12::RTV::IMGUI).Get(), nullptr, m_d3d12.get_cpu_rtv(device, D3D12::RTV::IMGUI));
         device->CreateRenderTargetView(m_d3d12.get_rt(D3D12::RTV::BLANK).Get(), nullptr, m_d3d12.get_cpu_rtv(device, D3D12::RTV::BLANK));
         device->CreateShaderResourceView(
-            m_d3d12.get_rt(D3D12::RTV::IMGUI).Get(), nullptr, m_d3d12.get_cpu_srv(device, D3D12::SRV::IMGUI));
+            m_d3d12.get_rt(D3D12::RTV::IMGUI).Get(), nullptr, m_d3d12.get_cpu_srv(device, D3D12::SRV::IMGUI_VR));
         device->CreateShaderResourceView(m_d3d12.get_rt(D3D12::RTV::BLANK).Get(), nullptr, m_d3d12.get_cpu_srv(device, D3D12::SRV::BLANK));
 
         m_d3d12.rt_width = (uint32_t)desc.Width;
@@ -1826,16 +1932,47 @@ bool REFramework::init_d3d12() {
     auto& bb = m_d3d12.get_rt(D3D12::RTV::BACKBUFFER_0);
     auto bb_desc = bb->GetDesc();
 
-    if (!ImGui_ImplDX12_Init(device, 1, bb_desc.Format, m_d3d12.srv_desc_heap.Get(),
-            m_d3d12.get_cpu_srv(device, D3D12::SRV::IMGUI_FONT), m_d3d12.get_gpu_srv(device, D3D12::SRV::IMGUI_FONT))) {
+    if (!ImGui_ImplDX12_Init(device, 3, bb_desc.Format, m_d3d12.srv_desc_heap.Get(),
+            m_d3d12.get_cpu_srv(device, D3D12::SRV::IMGUI_FONT_BACKBUFFER), m_d3d12.get_gpu_srv(device, D3D12::SRV::IMGUI_FONT_BACKBUFFER))) {
         spdlog::error("[D3D12] Failed to initialize ImGui.");
         return false;
     }
+
+    m_d3d12.imgui_backend_datas[0] = ImGui::GetIO().BackendRendererUserData;
+
+    ImGui::GetIO().BackendRendererUserData = nullptr;
+
+    // Now initialize another one for the VR texture.
+    auto& bb_vr = m_d3d12.get_rt(D3D12::RTV::IMGUI);
+    auto bb_vr_desc = bb_vr->GetDesc();
+
+    if (!ImGui_ImplDX12_Init(device, 3, bb_vr_desc.Format, m_d3d12.srv_desc_heap.Get(),
+            m_d3d12.get_cpu_srv(device, D3D12::SRV::IMGUI_FONT_VR), m_d3d12.get_gpu_srv(device, D3D12::SRV::IMGUI_FONT_VR))) {
+        spdlog::error("[D3D12] Failed to initialize ImGui.");
+        return false;
+    }
+
+    m_d3d12.imgui_backend_datas[1] = ImGui::GetIO().BackendRendererUserData;
 
     return true;
 }
 
 void REFramework::deinit_d3d12() {
-    ImGui_ImplDX12_Shutdown();
+    for (auto& ctx : m_d3d12.cmd_ctxs) {
+        if (ctx != nullptr) {
+            ctx->reset();
+        }
+    }
+
+    m_d3d12.cmd_ctxs.clear();
+
+    for (auto userdata : m_d3d12.imgui_backend_datas) {
+        if (userdata != nullptr) {
+            ImGui::GetIO().BackendRendererUserData = userdata;
+            ImGui_ImplDX12_Shutdown();
+        }
+    }
+
+    ImGui::GetIO().BackendRendererUserData = nullptr;
     m_d3d12 = {};
 }

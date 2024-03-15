@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <spdlog/spdlog.h>
 #include <hde64.h>
 
@@ -25,6 +26,29 @@ void Resource::release() {
     ResourceManager::update_pointers();
 
     s_release_fn(this);
+}
+
+REManagedObject* Resource::create_holder(sdk::RETypeDefinition* t) {
+    if (t == nullptr) {
+        return nullptr;
+    }
+
+    static const auto resource_holder_t = sdk::find_type_definition("via.ResourceHolder");
+
+    if (resource_holder_t == nullptr || !t->is_a(resource_holder_t)) {
+        return nullptr;
+    }
+
+    auto instance = t->create_instance_full();
+
+    if (instance == nullptr) {
+        return nullptr;
+    }
+
+    this->add_ref();
+    *(sdk::Resource**)((uintptr_t)instance + sizeof(::REManagedObject)) = this;
+
+    return instance;
 }
 
 ResourceManager* ResourceManager::get() {
@@ -103,7 +127,7 @@ void ResourceManager::update_pointers() {
 
             for (const auto& pat : valid_patterns) {
                 for (auto ref = utility::scan(mod, pat); ref.has_value(); ref = utility::scan(*ref + 1, (mod_end - (*ref + 1)) - 100, pat)) {
-                    auto func = utility::find_function_start(*ref);
+                    auto func = utility::find_function_start_with_call(*ref);
 
                     if (func && *func != (uintptr_t)s_create_resource_fn) {
                         if (std::abs((ptrdiff_t)(*func - (uintptr_t)s_create_resource_fn)) < 0x50) {

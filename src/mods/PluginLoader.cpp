@@ -66,7 +66,9 @@ REFrameworkPluginFunctions g_plugin_functions {
     reframework::log_error,
     reframework::log_warn,
     reframework::log_info,
-    reframework::is_drawing_ui
+    reframework::is_drawing_ui,
+    reframework_create_script_state, 
+    reframework_destroy_script_state,
 };
 
 REFrameworkSDKFunctions g_sdk_functions {
@@ -165,17 +167,17 @@ REFrameworkSDKFunctions g_sdk_functions {
         return (REFrameworkManagedObjectHandle)sdk::VM::create_managed_string(utility::widen(str));
     },
     [](REFrameworkMethodHandle fn, REFPreHookFn pre_fn, REFPostHookFn post_fn, bool ignore_jmp) -> unsigned int {
-        return g_hookman.add((sdk::REMethodDefinition*)fn, [pre_fn](auto& args, auto& arg_tys) {
+        return g_hookman.add((sdk::REMethodDefinition*)fn, [pre_fn](auto& args, auto& arg_tys, uintptr_t ret_addr) {
                 if (pre_fn != nullptr) {
                     return (HookManager::PreHookResult)pre_fn((int)args.size(),
-                        (void**)args.data(), (REFrameworkTypeDefinitionHandle*)arg_tys.data());
+                        (void**)args.data(), (REFrameworkTypeDefinitionHandle*)arg_tys.data(), ret_addr);
                 } else {
                     return (HookManager::PreHookResult)REFRAMEWORK_HOOK_CALL_ORIGINAL;
                 }
             },
-            [post_fn](auto& ret_val, auto* ret_ty) {
+            [post_fn](auto& ret_val, auto* ret_ty, uintptr_t ret_addr) {
                 if (post_fn != nullptr) {
-                    post_fn((void**)&ret_val, (REFrameworkTypeDefinitionHandle)ret_ty);
+                    post_fn((void**)&ret_val, (REFrameworkTypeDefinitionHandle)ret_ty, ret_addr);
                 }
             },
             ignore_jmp);
@@ -447,6 +449,25 @@ REFrameworkResourceManager g_resource_manager_data {
         }
 
         return (REFrameworkResourceHandle)RERESOURCEMGR(mgr)->create_resource(t, utility::widen(name).c_str());
+    },
+    [](REFrameworkResourceManagerHandle mgr, const char* type_name, const char* name) -> REFrameworkManagedObjectHandle {
+        // NOT a type definition.
+        auto t = reframework::get_types()->get(type_name);
+
+        if (t == nullptr) {
+            return nullptr;
+        }
+
+        auto obj = RERESOURCEMGR(mgr)->create_userdata(t, utility::widen(name).c_str());
+
+        if (!obj.has_value()) {
+            return nullptr;
+        }
+
+        // The intrusive_ptr holds the reference for us initially, but when we return it back to the plugin
+        // we need to add another reference so that the plugin can hold onto it before we release it.
+        utility::re_managed_object::add_ref(obj.get());
+        return (REFrameworkManagedObjectHandle)obj.get();
     }
 };
 
@@ -454,7 +475,20 @@ REFrameworkResourceManager g_resource_manager_data {
 
 REFrameworkResource g_resource_data {
     [](REFrameworkResourceHandle res) { RERESOURCE(res)->add_ref(); },
-    [](REFrameworkResourceHandle res) { RERESOURCE(res)->release(); }
+    [](REFrameworkResourceHandle res) { RERESOURCE(res)->release(); },
+    [](REFrameworkResourceHandle res, const char* type_name) -> REFrameworkManagedObjectHandle {
+        if (type_name == nullptr) {
+            return nullptr;
+        }
+
+        const auto t = sdk::find_type_definition(type_name);
+
+        if (t == nullptr) {
+            return nullptr;
+        }
+
+        return (REFrameworkManagedObjectHandle)RERESOURCE(res)->create_holder(t);
+    }
 };
 
 #define RETYPEINFO(var) ((::REType*)var)
@@ -678,7 +712,7 @@ std::optional<std::string> PluginLoader::on_initialize() {
             continue;
         }
 
-        if (required_version.patch > g_plugin_version.patch) {
+        if (required_version.patch > g_plugin_version.patch && required_version.minor == g_plugin_version.minor) {
             spdlog::warn("[PluginLoader] Plugin {} desires a newer patch version", name);
             m_plugin_load_warnings.emplace(name, "Desires a newer patch version");
         }
@@ -762,6 +796,20 @@ void PluginLoader::on_draw_ui() {
     }
 }
 
+/// <summary>
+/// Request the creation of a separate script state from the main script state
+/// </summary>
+/// <returns>the lua state of the new script state</returns>
+lua_State* reframework_create_script_state() {
+    return ScriptRunner::get()->create_state();
+}
+/// <summary>
+/// Request the destruction of the script_state belonging to the lua state in question
+/// </summary>
+void reframework_destroy_script_state(lua_State* lua_state) {
+    ScriptRunner::get()->delete_state(lua_state);
+}
+
 bool reframework_on_lua_state_created(REFLuaStateCreatedCb cb) {
     if (cb == nullptr) {
         return false;
@@ -778,6 +826,8 @@ bool reframework_on_lua_state_destroyed(REFLuaStateDestroyedCb cb) {
 
     return APIProxy::get()->add_on_lua_state_destroyed(cb);
 }
+
+
 
 bool reframework_on_present(REFOnPresentCb cb) {
     if (cb == nullptr) {

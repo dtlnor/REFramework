@@ -196,7 +196,9 @@ std::optional<std::string> Hooks::hook_update_transform() {
     m_update_transform_hook = std::make_unique<FunctionHook>(update_transform, &update_transform_hook);
 
     if (!m_update_transform_hook->create()) {
-        return "Failed to hook UpdateTransform";
+        //return "Failed to hook UpdateTransform";
+        spdlog::error("Failed to hook UpdateTransform");
+        return std::nullopt; // who cares
     }
 
     return std::nullopt;
@@ -495,6 +497,7 @@ std::optional<std::string> Hooks::hook_update_before_lock_scene() {
 }
 
 std::optional<std::string> Hooks::hook_lightshaft_draw() {
+#if 0
     // Create a fake via.render.LightShaft instance
     // so we can get the draw method and hook it.
     auto lightshaft_t = sdk::find_type_definition("via.render.LightShaft");
@@ -532,6 +535,7 @@ std::optional<std::string> Hooks::hook_lightshaft_draw() {
     if (!m_lightshaft_draw_hook->create()) {
         return "Failed to hook via::render::LightShaft::draw";
     }
+#endif
 
     return std::nullopt;
 }
@@ -848,7 +852,11 @@ void Hooks::global_application_entry_hook_internal(void* entry, const char* name
         return original(entry);
     }
 
-    {
+    const auto should_allow_ignore = sdk::VM::s_tdb_version >= 73 ?
+                                     (hash != 0x76b8100bec7c12c3 && hash != 0x9f63c0fc4eea6626) :
+                                     true;
+
+    if (should_allow_ignore) {
         std::shared_lock _{m_application_entry_data_mutex};
 
         if (m_ignored_application_entries.contains(hash)) {

@@ -1,8 +1,12 @@
 #pragma once
 
 #include <chrono>
+#include <unordered_map>
 
 #include "Mod.hpp"
+
+class REManagedObject;
+class REComponent;
 
 class Graphics : public Mod {
 public:
@@ -24,22 +28,25 @@ public:
     void on_scene_layer_update(sdk::renderer::layer::Scene* layer, void* render_context) override;
 
 private:
+    void fix_ui_element(REComponent* gui_element);
     void do_scope_tweaks(sdk::renderer::layer::Scene* layer);
     void do_ultrawide_fix();
     void do_ultrawide_fov_restore(bool force = false);
-    void set_vertical_fov(bool enable);
+    void set_ultrawide_fov(bool enable);
 
-    float m_old_fov{90.0f};
+    std::recursive_mutex m_fov_mutex{};
+    std::unordered_map<::REManagedObject*, float> m_fov_map{};
+    std::unordered_map<::REManagedObject*, bool> m_vertical_fov_map{};
 
     struct {
         std::shared_mutex time_mtx{};
         std::chrono::steady_clock::time_point last_inventory_open{};
     } m_re4;
-
+    
     const ModToggle::Ptr m_ultrawide_fix{ ModToggle::create(generate_name("UltrawideFix"), false) };
-    const ModToggle::Ptr m_ultrawide_vertical_fov{ ModToggle::create(generate_name("UltrawideFixVerticalFOV"), true) };
-    const ModToggle::Ptr m_ultrawide_fov{ ModToggle::create(generate_name("UltrawideFixFOV"), true) };
-    const ModSlider::Ptr m_ultrawide_fov_multiplier{ ModSlider::create(generate_name("UltrawideFOVMultiplier"), 0.01f, 3.0f, 0.5f) };
+    const ModToggle::Ptr m_ultrawide_vertical_fov{ ModToggle::create(generate_name("UltrawideFixVerticalFOV_V2"), false) };
+    const ModToggle::Ptr m_ultrawide_custom_fov{ModToggle::create(generate_name("UltrawideCustomFOV"), false)};
+    const ModSlider::Ptr m_ultrawide_fov_multiplier{ ModSlider::create(generate_name("UltrawideFOVMultiplier_V2"), 0.01f, 3.0f, 1.0f) };
     const ModToggle::Ptr m_disable_gui{ ModToggle::create(generate_name("DisableGUI"), false) };
     const ModToggle::Ptr m_force_render_res_to_window{ ModToggle::create(generate_name("ForceRenderResToWindow"), false) };
     const ModKey::Ptr m_disable_gui_key{ ModKey::create(generate_name("DisableGUIKey")) };
@@ -55,7 +62,7 @@ private:
     ValueList m_options{
         *m_ultrawide_fix,
         *m_ultrawide_vertical_fov,
-        *m_ultrawide_fov,
+        *m_ultrawide_custom_fov,
         *m_ultrawide_fov_multiplier,
         *m_disable_gui,
         *m_force_render_res_to_window,

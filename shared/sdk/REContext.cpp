@@ -143,6 +143,7 @@ namespace sdk {
             if (*(uint32_t*)ptr == *(uint32_t*)"TDB") {
                 const auto version = *(uint32_t*)((uintptr_t)ptr + 4);
 
+                s_tdb_version = version;
                 s_type_db_offset = i;
                 s_static_tbl_offset = s_type_db_offset - 0x30; // hope this holds true for the older gameS!!!!!!!!!!!!!!!!!!!
                 spdlog::info("[VM::update_pointers] s_type_db_offset: {:x}", s_type_db_offset);
@@ -156,6 +157,48 @@ namespace sdk {
         spdlog::info("[VM::update_pointers] s_global_context: {:x}", (uintptr_t)s_global_context);
         spdlog::info("[VM::update_pointers] s_get_thread_context: {:x}", (uintptr_t)s_get_thread_context);
 
+        // Needed on TDB73/AJ. The 0x30 offset we have is not correct, so we need to find the correct one
+        // And the "correct" one is the first one that doesn't look like a BS pointer (crude, i know)
+        // so... TODO: find a better way to do this
+#if TDB_VER >= 71
+        if (s_global_context != nullptr && *s_global_context != nullptr) {
+            auto static_tbl = (REStaticTbl**)((uintptr_t)*s_global_context + s_static_tbl_offset);
+            if (IsBadReadPtr(*static_tbl, sizeof(void*)) || ((uintptr_t)*static_tbl & (sizeof(void*) - 1)) != 0) {
+                spdlog::info("[VM::update_pointers] Static table offset is bad, correcting...");
+
+                // We are looking for the two arrays, the static field table, and the static field "initialized table"
+                // The initialized table tells whether a specific entry in the static field table has been initialized or not
+                // so they both should have the same size, easy to find
+                for (auto i = sizeof(void*); i < 0x100; i+= sizeof(void*)) {
+                    const auto& ptr = *(REStaticTbl**)((uintptr_t)*s_global_context + (s_type_db_offset - i));
+
+                    if (IsBadReadPtr(ptr, sizeof(void*)) || ((uintptr_t)ptr & (sizeof(void*) - 1)) != 0) {
+                        continue;
+                    }
+
+                    spdlog::info("[VM::update_pointers] Examining {:x}", (uintptr_t)ptr);
+
+                    const auto& potential_count = *(uint32_t*)((uintptr_t)&ptr + sizeof(void*));
+
+                    if (potential_count < 2000) {
+                        continue;
+                    }
+
+                    constexpr auto array_size = (sizeof(void*) * 2);
+                    const auto previous_offset = s_type_db_offset - i - array_size;
+                    const auto& previous_ptr = *(REStaticTbl**)((uintptr_t)*s_global_context + previous_offset);
+                    const auto& previous_count = *(uint32_t*)((uintptr_t)&previous_ptr + sizeof(void*));
+
+                    if (previous_count == potential_count) {
+                        spdlog::info("[VM::update_pointers] Found static table at {:x} (offset {:x})", (uintptr_t)ptr, previous_offset);
+                        s_static_tbl_offset = previous_offset;
+                        break;
+                    }
+                }
+            }
+        }
+#endif
+
         // Get invoke_tbl
         // this SEEMS to work on RE2 and onwards, but not on RE7
         // look into it later
@@ -168,7 +211,25 @@ namespace sdk {
         std::vector<std::string> invoke_patterns {
             "40 53 48 83 ec 20 48 8b 41 30 4c 8b d2 48 8b 51 40 48 8b d9 4c 8b 00 48 8b 41 10", // RE2 - MHRise v1
             "40 53 48 83 ec 20 48 8b 41 10 48 8b da 8b 48 08", // MHRise Sunbreak/newer games?
+            "40 53 48 83 EC ? 48 8B 41 30 4C 8B D2 4C 8B 49 10 48 8B D9 48 8B 51 40 49 8B CA 4C 8B 00 41 FF" // seen in game pass RE2
         };
+
+        // ok so if these patterns above are failing, we can find the invoke table by looking for these set of instructions:
+        // 8D 56 FF                                      lea     edx, [rsi-1]
+        // 48 8B CF                                      mov     rcx, rdi
+        // E8 67 FD 6C 01                                call    sub_[removed]
+
+        // Then, scroll up from here, and you'll see something that looks like this:
+        /*
+        E8 D4 D6 6C 01                                call    sub_[removed]
+        41 B8 53 15 00 00                             mov     r8d, 1553h ; dead giveaway is a number like this that is the size of the invoke table
+        48 8D 15 37 C7 6B 06                          lea     rdx, g_invokeTbl ; this is what we want
+        48 8B 08                                      mov     rcx, [rax]
+        48 8B 05 2D 47 86 06                          mov     rax, cs:off_[removed]
+        48 89 08                                      mov     [rax], rcx
+        48 8B CF                                      mov     rcx, rdi
+        */
+
 
         std::optional<uintptr_t> method_inside_invoke_tbl{std::nullopt};
 
