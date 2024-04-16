@@ -2,8 +2,11 @@
 
 #include <windows.h>
 #include <cstdint>
+#include <shared_mutex>
 
 #include <utility/Address.hpp>
+
+#include <safetyhook.hpp>
 
 class FunctionHook {
 public:
@@ -15,28 +18,33 @@ public:
 
     bool create();
 
-    // Called automatically by the destructor, but you can call it explicitly
-    // if you need to remove the hook.
-    bool remove();
-
     auto get_original() const {
-        return m_original;
+        std::shared_lock _{ m_initialization_mutex };
+        return m_inline_hook->trampoline().address();
     }
 
     template <typename T>
     T* get_original() const {
-        return (T*)m_original;
+        std::shared_lock _{ m_initialization_mutex };
+        return m_inline_hook->original<T*>();
     }
 
     auto is_valid() const {
-        return m_original != 0;
+        std::shared_lock _{ m_initialization_mutex };
+        return is_valid_unsafe();
     }
 
     FunctionHook& operator=(const FunctionHook& other) = delete;
     FunctionHook& operator=(FunctionHook&& other) = delete;
 
 private:
+    bool is_valid_unsafe() const {
+        return m_inline_hook && m_inline_hook->operator bool();
+    }
+
+    std::expected<SafetyHookInline, SafetyHookInline::Error> m_inline_hook;
+    mutable std::shared_mutex m_initialization_mutex{};
+
     uintptr_t m_target{ 0 };
     uintptr_t m_destination{ 0 };
-    uintptr_t m_original{ 0 };
 };

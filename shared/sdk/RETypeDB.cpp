@@ -53,6 +53,7 @@ sdk::RETypeDefinition* RETypeDB::find_type(std::string_view name) const {
         }
     }
 
+    std::unique_lock _{ g_tdb_type_mtx };
     return g_tdb_type_map[name.data()];
 }
 
@@ -134,7 +135,7 @@ void* find_native_method(std::string_view type_name, std::string_view method_nam
 sdk::RETypeDefinition* RETypeDB::get_type(uint32_t index) const {
     index &= get_type_bitmask();
 
-    if (index >= this->numTypes) {
+    if (index >= this->get_num_types()) {
         return nullptr;
     }
 
@@ -391,6 +392,9 @@ const char* REMethodDefinition::get_name() const {
     return tdb->get_string(name_offset);
 }
 
+std::unordered_set<REMethodDefinition*> logged_encoded_0_methods{};
+std::shared_mutex logged_encoded_0_methods_mtx{};
+
 void* REMethodDefinition::get_function() const {
 #if TDB_VER >= 71
     if (this->encoded_offset == 0) {
@@ -414,6 +418,17 @@ void* REMethodDefinition::get_function() const {
                 return r;
             }
         }*/
+
+        {
+            std::shared_lock _{ logged_encoded_0_methods_mtx };
+
+            if (logged_encoded_0_methods.contains(const_cast<REMethodDefinition*>(this))) {
+                return nullptr;
+            }
+        }
+
+        std::unique_lock _{ logged_encoded_0_methods_mtx };
+        logged_encoded_0_methods.insert(const_cast<REMethodDefinition*>(this));
 
         auto decl_type = this->get_declaring_type();
         auto name = decl_type != nullptr ? decl_type->get_full_name() : std::string{"null"};
@@ -482,7 +497,9 @@ reframework::InvokeRet sdk::REMethodDefinition::invoke(void* object, const std::
 
     if (num_params != args.size()) {
         //throw std::runtime_error("Invalid number of arguments");
-        spdlog::warn("Invalid number of arguments passed to REMethodDefinition::invoke for {}", get_name());
+        const auto declaring_type = get_declaring_type();
+        const auto decltype_name = declaring_type != nullptr ? declaring_type->get_full_name() : "unknownclass";
+        spdlog::warn("Invalid number of arguments passed to REMethodDefinition::invoke for {}.{}", decltype_name, get_name());
         return reframework::InvokeRet{};
     }
 
@@ -536,7 +553,9 @@ reframework::InvokeRet sdk::REMethodDefinition::invoke(void* object, const std::
 
             // exception pointer
             if (context->unkPtr->unkPtr != nullptr) {
-                spdlog::error("Internal game exception thrown in REMethodDefinition::invoke for {}", get_name());
+                const auto declaring_type = get_declaring_type();
+                const auto decltype_name = declaring_type != nullptr ? declaring_type->get_full_name() : "unknownclass";
+                spdlog::error("Internal game exception thrown in REMethodDefinition::invoke for {}.{}", decltype_name, get_name());
 
                 const auto exception_managed_object = (::REManagedObject*)context->unkPtr->unkPtr;
 
@@ -558,7 +577,10 @@ reframework::InvokeRet sdk::REMethodDefinition::invoke(void* object, const std::
                 context->unkPtr->unkPtr = nullptr;
             }
         } catch (sdk::VMContext::Exception&) {
-            spdlog::error("Exception thrown in REMethodDefinition::invoke for {}", get_name());
+            const auto declaring_type = get_declaring_type();
+            const auto decltype_name = declaring_type != nullptr ? declaring_type->get_full_name() : "unknownclass";
+
+            spdlog::error("Exception thrown in REMethodDefinition::invoke for {}.{}", decltype_name, get_name());
             context->cleanup_after_exception(scoped_translator.get_prev_reference_count());
             
             memset(&out, 0, sizeof(out));

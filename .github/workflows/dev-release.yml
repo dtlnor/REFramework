@@ -10,22 +10,17 @@ jobs:
         target: [RE2, RE2_TDB66, RE3, RE3_TDB67, RE4, RE7, RE7_TDB49, RE8, DMC5, MHRISE, SF6, DD2]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
         with:
           submodules: recursive
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Configure CMake
         run: cmake -S ${{github.workspace}} -B ${{github.workspace}}/build -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DDEVELOPER_MODE=ON
 
       - name: Build
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target ${{matrix.target}}
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{matrix.target}}
-          path: ${{github.workspace}}/build/bin/${{matrix.target}}/dinput8.dll
-          if-no-files-found: error
 
       - name: Compress release
         run: |
@@ -39,12 +34,38 @@ jobs:
           7z a ${{github.workspace}}/${{matrix.target}}.zip ${{github.workspace}}/scripts
           7z rn ${{github.workspace}}/${{matrix.target}}.zip scripts reframework/autorun
 
-      - name: Release
-        if: github.ref == 'refs/heads/RE_RSZ_MHRise'
-        uses: softprops/action-gh-release@v0.1.13
+      - name: Upload artifacts
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
         with:
-          repository: dtlnor/REFramework
-          token: ${{secrets.REPO_TOKEN}}
+          name: ${{matrix.target}}
+          path: ${{github.workspace}}/${{matrix.target}}.zip
+          if-no-files-found: error
+    
+  nightly-push:
+    runs-on: windows-latest
+    needs: dev-release
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+        with:
+          persist-credentials: false
+
+      - name: Download artifacts
+        uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
+        with:
+          path: ${{github.workspace}}/artifacts
+
+      - name: Create Release
+        uses: ncipollo/release-action@6c75be85e571768fa31b40abf38de58ba0397db5
+        with:
+          repo: REFramework-nightly
+          owner: praydog
+          token: ${{ secrets.REPO_TOKEN }}
           name: ${{format('REF Nightly {0} ({1})', github.run_number, github.sha)}}
-          tag_name: latest
-          files: ${{github.workspace}}/${{matrix.target}}.zip
+          tag: ${{format('nightly-{0}-{1}', github.run_number, github.sha)}}
+          artifacts: ${{github.workspace}}/artifacts/**/*.zip
+          makeLatest: true
+          bodyFile: ${{github.workspace}}/nightly-body.md
+          allowUpdates: true
+

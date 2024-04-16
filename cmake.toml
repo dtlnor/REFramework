@@ -14,6 +14,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 set(ASMJIT_STATIC ON CACHE BOOL "" FORCE)
 set(DYNAMIC_LOADER ON CACHE BOOL "" FORCE) # OpenXR
 set(BUILD_TOOLS OFF CACHE BOOL "" FORCE) # DirectXTK
+set(SAFETYHOOK_FETCH_ZYDIS ON)
 
 if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
@@ -111,6 +112,9 @@ include-directories = [
 ]
 condition = "build-framework-dependencies"
 
+[fetch-content.safetyhook]
+git = "https://github.com/cursey/safetyhook"
+tag = "4faf792c2d66cbf06f2c942561d053aafd79006b"
 
 [target.imgui]
 type = "static"
@@ -171,7 +175,7 @@ tag = "v1.34.10"
 
 [fetch-content.kananlib]
 git = "https://github.com/cursey/kananlib"
-tag = "b0323a0b005fc9e3944e0ea36dcc98eda4b84eea"
+tag = "0bf5781a38a857f0acea3935425d50a1a5a34d3a"
 
 [target.utility]
 type = "static"
@@ -182,6 +186,7 @@ compile-features = ["cxx_std_23"]
 link-libraries = [
     "spdlog",
     "minhook",
+    "safetyhook",
     "kananlib"
 ]
 
@@ -232,6 +237,13 @@ link-libraries = [
     "DirectXTK",
     "DirectXTK12"
 ]
+cmake-after="""
+add_custom_command(
+    TARGET ${CMKR_TARGET} PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+)
+"""
 
 [template.game.properties]
 OUTPUT_NAME = "dinput8"
@@ -342,7 +354,7 @@ type = "game"
 [template.plugin]
 type = "shared"
 include-directories = ["include/"]
-compile-features = ["cxx_std_20"]
+compile-features = ["cxx_std_23"]
 condition = "build-framework"
 
 [template.plugin.properties]

@@ -14,6 +14,7 @@
 #include "mods/Scene.hpp"
 #include "mods/ScriptRunner.hpp"
 #include "mods/VR.hpp"
+#include "mods/LooseFileLoader.hpp"
 #include "mods/vr/games/RE8VR.hpp"
 
 #include "Mods.hpp"
@@ -21,12 +22,13 @@
 Mods::Mods() {
     m_mods.emplace_back(REFrameworkConfig::get());
 
-#if defined(RE3) || defined(RE8) || defined(MHRISE)
+#if defined(REENGINE_AT)
     m_mods.emplace_back(std::make_unique<IntegrityCheckBypass>());
 #endif
 
 #ifndef BAREBONES
     m_mods.emplace_back(Hooks::get());
+    m_mods.emplace_back(LooseFileLoader::get());
 
     m_mods.emplace_back(VR::get());
 

@@ -55,6 +55,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 set(ASMJIT_STATIC ON CACHE BOOL "" FORCE)
 set(DYNAMIC_LOADER ON CACHE BOOL "" FORCE) # OpenXR
 set(BUILD_TOOLS OFF CACHE BOOL "" FORCE) # DirectXTK
+set(SAFETYHOOK_FETCH_ZYDIS ON)
 
 if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
@@ -113,6 +114,16 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(directxtk12)
 
+message(STATUS "Fetching safetyhook (4faf792c2d66cbf06f2c942561d053aafd79006b)...")
+FetchContent_Declare(
+	safetyhook
+	GIT_REPOSITORY
+		https://github.com/cursey/safetyhook
+	GIT_TAG
+		4faf792c2d66cbf06f2c942561d053aafd79006b
+)
+FetchContent_MakeAvailable(safetyhook)
+
 message(STATUS "Fetching bddisasm (v1.34.10)...")
 FetchContent_Declare(
 	bddisasm
@@ -123,13 +134,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(bddisasm)
 
-message(STATUS "Fetching kananlib (b0323a0b005fc9e3944e0ea36dcc98eda4b84eea)...")
+message(STATUS "Fetching kananlib (0bf5781a38a857f0acea3935425d50a1a5a34d3a)...")
 FetchContent_Declare(
 	kananlib
 	GIT_REPOSITORY
 		https://github.com/cursey/kananlib
 	GIT_TAG
-		b0323a0b005fc9e3944e0ea36dcc98eda4b84eea
+		0bf5781a38a857f0acea3935425d50a1a5a34d3a
 )
 FetchContent_MakeAvailable(kananlib)
 
@@ -490,9 +501,13 @@ set(CMKR_TARGET utility)
 set(utility_SOURCES "")
 
 list(APPEND utility_SOURCES
+	"shared/utility/Exceptions.cpp"
 	"shared/utility/FunctionHook.cpp"
+	"shared/utility/FunctionHookMinHook.cpp"
 	"shared/utility/Relocate.cpp"
+	"shared/utility/Exceptions.hpp"
 	"shared/utility/FunctionHook.hpp"
+	"shared/utility/FunctionHookMinHook.hpp"
 	"shared/utility/Relocate.hpp"
 )
 
@@ -520,6 +535,7 @@ target_compile_options(utility PUBLIC
 target_link_libraries(utility PUBLIC
 	spdlog
 	minhook
+	safetyhook
 	kananlib
 )
 
@@ -533,6 +549,7 @@ if(REF_BUILD_RE2_SDK OR REF_BUILD_FRAMEWORK) # build-re2-sdk
 
 	list(APPEND RE2SDK_SOURCES
 		"shared/sdk/Application.cpp"
+		"shared/sdk/GUIPrimitiveSystem.cpp"
 		"shared/sdk/ManagedObject.cpp"
 		"shared/sdk/Memory.cpp"
 		"shared/sdk/MotionFsm2Layer.cpp"
@@ -557,6 +574,7 @@ if(REF_BUILD_RE2_SDK OR REF_BUILD_FRAMEWORK) # build-re2-sdk
 		"shared/sdk/renderer/RenderResource.cpp"
 		"shared/sdk/Application.hpp"
 		"shared/sdk/Enums_Internal.hpp"
+		"shared/sdk/GUIPrimitiveSystem.hpp"
 		"shared/sdk/ManagedObject.hpp"
 		"shared/sdk/Math.hpp"
 		"shared/sdk/Memory.hpp"
@@ -1355,6 +1373,7 @@ if(REF_BUILD_RE2_TDB66SDK OR REF_BUILD_FRAMEWORK) # build-re2tdb66-sdk
 
 	list(APPEND RE2_TDB66SDK_SOURCES
 		"shared/sdk/Application.cpp"
+		"shared/sdk/GUIPrimitiveSystem.cpp"
 		"shared/sdk/ManagedObject.cpp"
 		"shared/sdk/Memory.cpp"
 		"shared/sdk/MotionFsm2Layer.cpp"
@@ -1379,6 +1398,7 @@ if(REF_BUILD_RE2_TDB66SDK OR REF_BUILD_FRAMEWORK) # build-re2tdb66-sdk
 		"shared/sdk/renderer/RenderResource.cpp"
 		"shared/sdk/Application.hpp"
 		"shared/sdk/Enums_Internal.hpp"
+		"shared/sdk/GUIPrimitiveSystem.hpp"
 		"shared/sdk/ManagedObject.hpp"
 		"shared/sdk/Math.hpp"
 		"shared/sdk/Memory.hpp"
@@ -2187,6 +2207,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/REFramework.cpp"
 		"src/WindowFilter.cpp"
 		"src/WindowsMessageHook.cpp"
+		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
@@ -2195,6 +2216,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.cpp"
 		"src/mods/Hooks.cpp"
 		"src/mods/IntegrityCheckBypass.cpp"
+		"src/mods/LooseFileLoader.cpp"
 		"src/mods/ManualFlashlight.cpp"
 		"src/mods/PluginLoader.cpp"
 		"src/mods/REFrameworkConfig.cpp"
@@ -2244,6 +2266,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.hpp"
 		"src/mods/Hooks.hpp"
 		"src/mods/IntegrityCheckBypass.hpp"
+		"src/mods/LooseFileLoader.hpp"
 		"src/mods/ManualFlashlight.hpp"
 		"src/mods/PluginLoader.hpp"
 		"src/mods/REFrameworkConfig.hpp"
@@ -2273,6 +2296,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/font_robotomedium.hpp"
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
+		"src/cimgui/cimgui.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -2364,6 +2388,12 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
+	add_custom_command(
+	    TARGET ${CMKR_TARGET} PRE_BUILD
+	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	)
+
 	unset(CMKR_TARGET)
 	unset(CMKR_SOURCES)
 endif()
@@ -2384,6 +2414,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/REFramework.cpp"
 		"src/WindowFilter.cpp"
 		"src/WindowsMessageHook.cpp"
+		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
@@ -2392,6 +2423,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.cpp"
 		"src/mods/Hooks.cpp"
 		"src/mods/IntegrityCheckBypass.cpp"
+		"src/mods/LooseFileLoader.cpp"
 		"src/mods/ManualFlashlight.cpp"
 		"src/mods/PluginLoader.cpp"
 		"src/mods/REFrameworkConfig.cpp"
@@ -2441,6 +2473,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.hpp"
 		"src/mods/Hooks.hpp"
 		"src/mods/IntegrityCheckBypass.hpp"
+		"src/mods/LooseFileLoader.hpp"
 		"src/mods/ManualFlashlight.hpp"
 		"src/mods/PluginLoader.hpp"
 		"src/mods/REFrameworkConfig.hpp"
@@ -2470,6 +2503,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/font_robotomedium.hpp"
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
+		"src/cimgui/cimgui.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -2561,6 +2595,12 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
+	add_custom_command(
+	    TARGET ${CMKR_TARGET} PRE_BUILD
+	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	)
+
 	unset(CMKR_TARGET)
 	unset(CMKR_SOURCES)
 endif()
@@ -2572,6 +2612,7 @@ if(REF_BUILD_RE3_SDK OR REF_BUILD_FRAMEWORK) # build-re3-sdk
 
 	list(APPEND RE3SDK_SOURCES
 		"shared/sdk/Application.cpp"
+		"shared/sdk/GUIPrimitiveSystem.cpp"
 		"shared/sdk/ManagedObject.cpp"
 		"shared/sdk/Memory.cpp"
 		"shared/sdk/MotionFsm2Layer.cpp"
@@ -2596,6 +2637,7 @@ if(REF_BUILD_RE3_SDK OR REF_BUILD_FRAMEWORK) # build-re3-sdk
 		"shared/sdk/renderer/RenderResource.cpp"
 		"shared/sdk/Application.hpp"
 		"shared/sdk/Enums_Internal.hpp"
+		"shared/sdk/GUIPrimitiveSystem.hpp"
 		"shared/sdk/ManagedObject.hpp"
 		"shared/sdk/Math.hpp"
 		"shared/sdk/Memory.hpp"
@@ -3394,6 +3436,7 @@ if(REF_BUILD_RE3_TDB67SDK OR REF_BUILD_FRAMEWORK) # build-re3tdb67-sdk
 
 	list(APPEND RE3_TDB67SDK_SOURCES
 		"shared/sdk/Application.cpp"
+		"shared/sdk/GUIPrimitiveSystem.cpp"
 		"shared/sdk/ManagedObject.cpp"
 		"shared/sdk/Memory.cpp"
 		"shared/sdk/MotionFsm2Layer.cpp"
@@ -3418,6 +3461,7 @@ if(REF_BUILD_RE3_TDB67SDK OR REF_BUILD_FRAMEWORK) # build-re3tdb67-sdk
 		"shared/sdk/renderer/RenderResource.cpp"
 		"shared/sdk/Application.hpp"
 		"shared/sdk/Enums_Internal.hpp"
+		"shared/sdk/GUIPrimitiveSystem.hpp"
 		"shared/sdk/ManagedObject.hpp"
 		"shared/sdk/Math.hpp"
 		"shared/sdk/Memory.hpp"
@@ -4226,6 +4270,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/REFramework.cpp"
 		"src/WindowFilter.cpp"
 		"src/WindowsMessageHook.cpp"
+		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
@@ -4234,6 +4279,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.cpp"
 		"src/mods/Hooks.cpp"
 		"src/mods/IntegrityCheckBypass.cpp"
+		"src/mods/LooseFileLoader.cpp"
 		"src/mods/ManualFlashlight.cpp"
 		"src/mods/PluginLoader.cpp"
 		"src/mods/REFrameworkConfig.cpp"
@@ -4283,6 +4329,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.hpp"
 		"src/mods/Hooks.hpp"
 		"src/mods/IntegrityCheckBypass.hpp"
+		"src/mods/LooseFileLoader.hpp"
 		"src/mods/ManualFlashlight.hpp"
 		"src/mods/PluginLoader.hpp"
 		"src/mods/REFrameworkConfig.hpp"
@@ -4312,6 +4359,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/font_robotomedium.hpp"
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
+		"src/cimgui/cimgui.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -4403,6 +4451,12 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
+	add_custom_command(
+	    TARGET ${CMKR_TARGET} PRE_BUILD
+	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	)
+
 	unset(CMKR_TARGET)
 	unset(CMKR_SOURCES)
 endif()
@@ -4423,6 +4477,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/REFramework.cpp"
 		"src/WindowFilter.cpp"
 		"src/WindowsMessageHook.cpp"
+		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
@@ -4431,6 +4486,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.cpp"
 		"src/mods/Hooks.cpp"
 		"src/mods/IntegrityCheckBypass.cpp"
+		"src/mods/LooseFileLoader.cpp"
 		"src/mods/ManualFlashlight.cpp"
 		"src/mods/PluginLoader.cpp"
 		"src/mods/REFrameworkConfig.cpp"
@@ -4480,6 +4536,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.hpp"
 		"src/mods/Hooks.hpp"
 		"src/mods/IntegrityCheckBypass.hpp"
+		"src/mods/LooseFileLoader.hpp"
 		"src/mods/ManualFlashlight.hpp"
 		"src/mods/PluginLoader.hpp"
 		"src/mods/REFrameworkConfig.hpp"
@@ -4509,6 +4566,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/font_robotomedium.hpp"
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
+		"src/cimgui/cimgui.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -4600,6 +4658,12 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
+	add_custom_command(
+	    TARGET ${CMKR_TARGET} PRE_BUILD
+	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	)
+
 	unset(CMKR_TARGET)
 	unset(CMKR_SOURCES)
 endif()
@@ -4620,6 +4684,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/REFramework.cpp"
 		"src/WindowFilter.cpp"
 		"src/WindowsMessageHook.cpp"
+		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
@@ -4628,6 +4693,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.cpp"
 		"src/mods/Hooks.cpp"
 		"src/mods/IntegrityCheckBypass.cpp"
+		"src/mods/LooseFileLoader.cpp"
 		"src/mods/ManualFlashlight.cpp"
 		"src/mods/PluginLoader.cpp"
 		"src/mods/REFrameworkConfig.cpp"
@@ -4677,6 +4743,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.hpp"
 		"src/mods/Hooks.hpp"
 		"src/mods/IntegrityCheckBypass.hpp"
+		"src/mods/LooseFileLoader.hpp"
 		"src/mods/ManualFlashlight.hpp"
 		"src/mods/PluginLoader.hpp"
 		"src/mods/REFrameworkConfig.hpp"
@@ -4706,6 +4773,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/font_robotomedium.hpp"
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
+		"src/cimgui/cimgui.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -4797,6 +4865,12 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
+	add_custom_command(
+	    TARGET ${CMKR_TARGET} PRE_BUILD
+	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	)
+
 	unset(CMKR_TARGET)
 	unset(CMKR_SOURCES)
 endif()
@@ -4808,6 +4882,7 @@ if(REF_BUILD_RE4_SDK OR REF_BUILD_FRAMEWORK) # build-re4-sdk
 
 	list(APPEND RE4SDK_SOURCES
 		"shared/sdk/Application.cpp"
+		"shared/sdk/GUIPrimitiveSystem.cpp"
 		"shared/sdk/ManagedObject.cpp"
 		"shared/sdk/Memory.cpp"
 		"shared/sdk/MotionFsm2Layer.cpp"
@@ -4832,6 +4907,7 @@ if(REF_BUILD_RE4_SDK OR REF_BUILD_FRAMEWORK) # build-re4-sdk
 		"shared/sdk/renderer/RenderResource.cpp"
 		"shared/sdk/Application.hpp"
 		"shared/sdk/Enums_Internal.hpp"
+		"shared/sdk/GUIPrimitiveSystem.hpp"
 		"shared/sdk/ManagedObject.hpp"
 		"shared/sdk/Math.hpp"
 		"shared/sdk/Memory.hpp"
@@ -5632,6 +5708,7 @@ if(REF_BUILD_RE7_SDK OR REF_BUILD_FRAMEWORK) # build-re7-sdk
 
 	list(APPEND RE7SDK_SOURCES
 		"shared/sdk/Application.cpp"
+		"shared/sdk/GUIPrimitiveSystem.cpp"
 		"shared/sdk/ManagedObject.cpp"
 		"shared/sdk/Memory.cpp"
 		"shared/sdk/MotionFsm2Layer.cpp"
@@ -5656,6 +5733,7 @@ if(REF_BUILD_RE7_SDK OR REF_BUILD_FRAMEWORK) # build-re7-sdk
 		"shared/sdk/renderer/RenderResource.cpp"
 		"shared/sdk/Application.hpp"
 		"shared/sdk/Enums_Internal.hpp"
+		"shared/sdk/GUIPrimitiveSystem.hpp"
 		"shared/sdk/ManagedObject.hpp"
 		"shared/sdk/Math.hpp"
 		"shared/sdk/Memory.hpp"
@@ -6454,6 +6532,7 @@ if(REF_BUILD_RE7_TDB49SDK OR REF_BUILD_FRAMEWORK) # build-re7tdb49-sdk
 
 	list(APPEND RE7_TDB49SDK_SOURCES
 		"shared/sdk/Application.cpp"
+		"shared/sdk/GUIPrimitiveSystem.cpp"
 		"shared/sdk/ManagedObject.cpp"
 		"shared/sdk/Memory.cpp"
 		"shared/sdk/MotionFsm2Layer.cpp"
@@ -6478,6 +6557,7 @@ if(REF_BUILD_RE7_TDB49SDK OR REF_BUILD_FRAMEWORK) # build-re7tdb49-sdk
 		"shared/sdk/renderer/RenderResource.cpp"
 		"shared/sdk/Application.hpp"
 		"shared/sdk/Enums_Internal.hpp"
+		"shared/sdk/GUIPrimitiveSystem.hpp"
 		"shared/sdk/ManagedObject.hpp"
 		"shared/sdk/Math.hpp"
 		"shared/sdk/Memory.hpp"
@@ -7286,6 +7366,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/REFramework.cpp"
 		"src/WindowFilter.cpp"
 		"src/WindowsMessageHook.cpp"
+		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
@@ -7294,6 +7375,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.cpp"
 		"src/mods/Hooks.cpp"
 		"src/mods/IntegrityCheckBypass.cpp"
+		"src/mods/LooseFileLoader.cpp"
 		"src/mods/ManualFlashlight.cpp"
 		"src/mods/PluginLoader.cpp"
 		"src/mods/REFrameworkConfig.cpp"
@@ -7343,6 +7425,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.hpp"
 		"src/mods/Hooks.hpp"
 		"src/mods/IntegrityCheckBypass.hpp"
+		"src/mods/LooseFileLoader.hpp"
 		"src/mods/ManualFlashlight.hpp"
 		"src/mods/PluginLoader.hpp"
 		"src/mods/REFrameworkConfig.hpp"
@@ -7372,6 +7455,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/font_robotomedium.hpp"
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
+		"src/cimgui/cimgui.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -7463,6 +7547,12 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
+	add_custom_command(
+	    TARGET ${CMKR_TARGET} PRE_BUILD
+	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	)
+
 	unset(CMKR_TARGET)
 	unset(CMKR_SOURCES)
 endif()
@@ -7483,6 +7573,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/REFramework.cpp"
 		"src/WindowFilter.cpp"
 		"src/WindowsMessageHook.cpp"
+		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
@@ -7491,6 +7582,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.cpp"
 		"src/mods/Hooks.cpp"
 		"src/mods/IntegrityCheckBypass.cpp"
+		"src/mods/LooseFileLoader.cpp"
 		"src/mods/ManualFlashlight.cpp"
 		"src/mods/PluginLoader.cpp"
 		"src/mods/REFrameworkConfig.cpp"
@@ -7540,6 +7632,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.hpp"
 		"src/mods/Hooks.hpp"
 		"src/mods/IntegrityCheckBypass.hpp"
+		"src/mods/LooseFileLoader.hpp"
 		"src/mods/ManualFlashlight.hpp"
 		"src/mods/PluginLoader.hpp"
 		"src/mods/REFrameworkConfig.hpp"
@@ -7569,6 +7662,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/font_robotomedium.hpp"
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
+		"src/cimgui/cimgui.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -7660,6 +7754,12 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
+	add_custom_command(
+	    TARGET ${CMKR_TARGET} PRE_BUILD
+	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	)
+
 	unset(CMKR_TARGET)
 	unset(CMKR_SOURCES)
 endif()
@@ -7671,6 +7771,7 @@ if(REF_BUILD_RE8_SDK OR REF_BUILD_FRAMEWORK) # build-re8-sdk
 
 	list(APPEND RE8SDK_SOURCES
 		"shared/sdk/Application.cpp"
+		"shared/sdk/GUIPrimitiveSystem.cpp"
 		"shared/sdk/ManagedObject.cpp"
 		"shared/sdk/Memory.cpp"
 		"shared/sdk/MotionFsm2Layer.cpp"
@@ -7695,6 +7796,7 @@ if(REF_BUILD_RE8_SDK OR REF_BUILD_FRAMEWORK) # build-re8-sdk
 		"shared/sdk/renderer/RenderResource.cpp"
 		"shared/sdk/Application.hpp"
 		"shared/sdk/Enums_Internal.hpp"
+		"shared/sdk/GUIPrimitiveSystem.hpp"
 		"shared/sdk/ManagedObject.hpp"
 		"shared/sdk/Math.hpp"
 		"shared/sdk/Memory.hpp"
@@ -8504,6 +8606,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/REFramework.cpp"
 		"src/WindowFilter.cpp"
 		"src/WindowsMessageHook.cpp"
+		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
@@ -8512,6 +8615,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.cpp"
 		"src/mods/Hooks.cpp"
 		"src/mods/IntegrityCheckBypass.cpp"
+		"src/mods/LooseFileLoader.cpp"
 		"src/mods/ManualFlashlight.cpp"
 		"src/mods/PluginLoader.cpp"
 		"src/mods/REFrameworkConfig.cpp"
@@ -8561,6 +8665,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.hpp"
 		"src/mods/Hooks.hpp"
 		"src/mods/IntegrityCheckBypass.hpp"
+		"src/mods/LooseFileLoader.hpp"
 		"src/mods/ManualFlashlight.hpp"
 		"src/mods/PluginLoader.hpp"
 		"src/mods/REFrameworkConfig.hpp"
@@ -8590,6 +8695,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/font_robotomedium.hpp"
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
+		"src/cimgui/cimgui.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -8681,6 +8787,12 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
+	add_custom_command(
+	    TARGET ${CMKR_TARGET} PRE_BUILD
+	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	)
+
 	unset(CMKR_TARGET)
 	unset(CMKR_SOURCES)
 endif()
@@ -8692,6 +8804,7 @@ if(REF_BUILD_DMC5_SDK OR REF_BUILD_FRAMEWORK) # build-dmc5-sdk
 
 	list(APPEND DMC5SDK_SOURCES
 		"shared/sdk/Application.cpp"
+		"shared/sdk/GUIPrimitiveSystem.cpp"
 		"shared/sdk/ManagedObject.cpp"
 		"shared/sdk/Memory.cpp"
 		"shared/sdk/MotionFsm2Layer.cpp"
@@ -8716,6 +8829,7 @@ if(REF_BUILD_DMC5_SDK OR REF_BUILD_FRAMEWORK) # build-dmc5-sdk
 		"shared/sdk/renderer/RenderResource.cpp"
 		"shared/sdk/Application.hpp"
 		"shared/sdk/Enums_Internal.hpp"
+		"shared/sdk/GUIPrimitiveSystem.hpp"
 		"shared/sdk/ManagedObject.hpp"
 		"shared/sdk/Math.hpp"
 		"shared/sdk/Memory.hpp"
@@ -9523,6 +9637,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/REFramework.cpp"
 		"src/WindowFilter.cpp"
 		"src/WindowsMessageHook.cpp"
+		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
@@ -9531,6 +9646,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.cpp"
 		"src/mods/Hooks.cpp"
 		"src/mods/IntegrityCheckBypass.cpp"
+		"src/mods/LooseFileLoader.cpp"
 		"src/mods/ManualFlashlight.cpp"
 		"src/mods/PluginLoader.cpp"
 		"src/mods/REFrameworkConfig.cpp"
@@ -9580,6 +9696,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.hpp"
 		"src/mods/Hooks.hpp"
 		"src/mods/IntegrityCheckBypass.hpp"
+		"src/mods/LooseFileLoader.hpp"
 		"src/mods/ManualFlashlight.hpp"
 		"src/mods/PluginLoader.hpp"
 		"src/mods/REFrameworkConfig.hpp"
@@ -9609,6 +9726,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/font_robotomedium.hpp"
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
+		"src/cimgui/cimgui.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -9700,6 +9818,12 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
+	add_custom_command(
+	    TARGET ${CMKR_TARGET} PRE_BUILD
+	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	)
+
 	unset(CMKR_TARGET)
 	unset(CMKR_SOURCES)
 endif()
@@ -9711,6 +9835,7 @@ if(REF_BUILD_MHRISE_SDK OR REF_BUILD_FRAMEWORK) # build-mhrise-sdk
 
 	list(APPEND MHRISESDK_SOURCES
 		"shared/sdk/Application.cpp"
+		"shared/sdk/GUIPrimitiveSystem.cpp"
 		"shared/sdk/ManagedObject.cpp"
 		"shared/sdk/Memory.cpp"
 		"shared/sdk/MotionFsm2Layer.cpp"
@@ -9735,6 +9860,7 @@ if(REF_BUILD_MHRISE_SDK OR REF_BUILD_FRAMEWORK) # build-mhrise-sdk
 		"shared/sdk/renderer/RenderResource.cpp"
 		"shared/sdk/Application.hpp"
 		"shared/sdk/Enums_Internal.hpp"
+		"shared/sdk/GUIPrimitiveSystem.hpp"
 		"shared/sdk/ManagedObject.hpp"
 		"shared/sdk/Math.hpp"
 		"shared/sdk/Memory.hpp"
@@ -10544,6 +10670,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/REFramework.cpp"
 		"src/WindowFilter.cpp"
 		"src/WindowsMessageHook.cpp"
+		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
@@ -10552,6 +10679,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.cpp"
 		"src/mods/Hooks.cpp"
 		"src/mods/IntegrityCheckBypass.cpp"
+		"src/mods/LooseFileLoader.cpp"
 		"src/mods/ManualFlashlight.cpp"
 		"src/mods/PluginLoader.cpp"
 		"src/mods/REFrameworkConfig.cpp"
@@ -10601,6 +10729,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.hpp"
 		"src/mods/Hooks.hpp"
 		"src/mods/IntegrityCheckBypass.hpp"
+		"src/mods/LooseFileLoader.hpp"
 		"src/mods/ManualFlashlight.hpp"
 		"src/mods/PluginLoader.hpp"
 		"src/mods/REFrameworkConfig.hpp"
@@ -10630,6 +10759,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/font_robotomedium.hpp"
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
+		"src/cimgui/cimgui.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -10721,6 +10851,12 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
+	add_custom_command(
+	    TARGET ${CMKR_TARGET} PRE_BUILD
+	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	)
+
 	unset(CMKR_TARGET)
 	unset(CMKR_SOURCES)
 endif()
@@ -10732,6 +10868,7 @@ if(REF_BUILD_SF6_SDK OR REF_BUILD_FRAMEWORK) # build-sf6-sdk
 
 	list(APPEND SF6SDK_SOURCES
 		"shared/sdk/Application.cpp"
+		"shared/sdk/GUIPrimitiveSystem.cpp"
 		"shared/sdk/ManagedObject.cpp"
 		"shared/sdk/Memory.cpp"
 		"shared/sdk/MotionFsm2Layer.cpp"
@@ -10756,6 +10893,7 @@ if(REF_BUILD_SF6_SDK OR REF_BUILD_FRAMEWORK) # build-sf6-sdk
 		"shared/sdk/renderer/RenderResource.cpp"
 		"shared/sdk/Application.hpp"
 		"shared/sdk/Enums_Internal.hpp"
+		"shared/sdk/GUIPrimitiveSystem.hpp"
 		"shared/sdk/ManagedObject.hpp"
 		"shared/sdk/Math.hpp"
 		"shared/sdk/Memory.hpp"
@@ -11565,6 +11703,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/REFramework.cpp"
 		"src/WindowFilter.cpp"
 		"src/WindowsMessageHook.cpp"
+		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
@@ -11573,6 +11712,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.cpp"
 		"src/mods/Hooks.cpp"
 		"src/mods/IntegrityCheckBypass.cpp"
+		"src/mods/LooseFileLoader.cpp"
 		"src/mods/ManualFlashlight.cpp"
 		"src/mods/PluginLoader.cpp"
 		"src/mods/REFrameworkConfig.cpp"
@@ -11622,6 +11762,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.hpp"
 		"src/mods/Hooks.hpp"
 		"src/mods/IntegrityCheckBypass.hpp"
+		"src/mods/LooseFileLoader.hpp"
 		"src/mods/ManualFlashlight.hpp"
 		"src/mods/PluginLoader.hpp"
 		"src/mods/REFrameworkConfig.hpp"
@@ -11651,6 +11792,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/font_robotomedium.hpp"
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
+		"src/cimgui/cimgui.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -11742,6 +11884,12 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
+	add_custom_command(
+	    TARGET ${CMKR_TARGET} PRE_BUILD
+	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	)
+
 	unset(CMKR_TARGET)
 	unset(CMKR_SOURCES)
 endif()
@@ -11753,6 +11901,7 @@ if(REF_BUILD_DD2_SDK OR REF_BUILD_FRAMEWORK) # build-dd2-sdk
 
 	list(APPEND DD2SDK_SOURCES
 		"shared/sdk/Application.cpp"
+		"shared/sdk/GUIPrimitiveSystem.cpp"
 		"shared/sdk/ManagedObject.cpp"
 		"shared/sdk/Memory.cpp"
 		"shared/sdk/MotionFsm2Layer.cpp"
@@ -11777,6 +11926,7 @@ if(REF_BUILD_DD2_SDK OR REF_BUILD_FRAMEWORK) # build-dd2-sdk
 		"shared/sdk/renderer/RenderResource.cpp"
 		"shared/sdk/Application.hpp"
 		"shared/sdk/Enums_Internal.hpp"
+		"shared/sdk/GUIPrimitiveSystem.hpp"
 		"shared/sdk/ManagedObject.hpp"
 		"shared/sdk/Math.hpp"
 		"shared/sdk/Memory.hpp"
@@ -12586,6 +12736,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/REFramework.cpp"
 		"src/WindowFilter.cpp"
 		"src/WindowsMessageHook.cpp"
+		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
@@ -12594,6 +12745,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.cpp"
 		"src/mods/Hooks.cpp"
 		"src/mods/IntegrityCheckBypass.cpp"
+		"src/mods/LooseFileLoader.cpp"
 		"src/mods/ManualFlashlight.cpp"
 		"src/mods/PluginLoader.cpp"
 		"src/mods/REFrameworkConfig.cpp"
@@ -12643,6 +12795,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/mods/Graphics.hpp"
 		"src/mods/Hooks.hpp"
 		"src/mods/IntegrityCheckBypass.hpp"
+		"src/mods/LooseFileLoader.hpp"
 		"src/mods/ManualFlashlight.hpp"
 		"src/mods/PluginLoader.hpp"
 		"src/mods/REFrameworkConfig.hpp"
@@ -12672,6 +12825,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/font_robotomedium.hpp"
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
+		"src/cimgui/cimgui.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -12763,6 +12917,12 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 			"${CMAKE_BINARY_DIR}/lib/${CMKR_TARGET}"
 	)
 
+	add_custom_command(
+	    TARGET ${CMKR_TARGET} PRE_BUILD
+	    COMMAND ${CMAKE_COMMAND} -E echo "Generating commit hash..."
+	    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/MakeCommitHash.bat
+	)
+
 	unset(CMKR_TARGET)
 	unset(CMKR_SOURCES)
 endif()
@@ -12804,7 +12964,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 	source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${example_plugin_SOURCES})
 
 	target_compile_features(example_plugin PUBLIC
-		cxx_std_20
+		cxx_std_23
 	)
 
 	target_include_directories(example_plugin PUBLIC
@@ -12859,7 +13019,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 	source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${weapon_stay_big_plugin_SOURCES})
 
 	target_compile_features(weapon_stay_big_plugin PUBLIC
-		cxx_std_20
+		cxx_std_23
 	)
 
 	target_include_directories(weapon_stay_big_plugin PUBLIC
