@@ -240,6 +240,14 @@ REFramework::REFramework(HMODULE reframework_module)
 
     spdlog::info("REFramework entry");
 
+    spdlog::info("Commit hash: {}", REF_COMMIT_HASH);
+    spdlog::info("Tag: {}", REF_TAG);
+    spdlog::info("Commits past tag: {}", REF_COMMITS_PAST_TAG);
+    spdlog::info("Branch: {}", REF_BRANCH);
+    spdlog::info("Total commits: {}", REF_TOTAL_COMMITS);
+    spdlog::info("Build date: {}", REF_BUILD_DATE);
+    spdlog::info("Build time: {}", REF_BUILD_TIME);
+
     const auto module_size = *utility::get_module_size(m_game_module);
 
     spdlog::info("Game Module Addr: {:x}", (uintptr_t)m_game_module);
@@ -1799,6 +1807,13 @@ bool REFramework::initialize_game_data() {
                 }
 
                 spdlog::error("Initialization of mods failed. Reason: {}", m_error);
+            }
+
+            // Need to clean up local objects as this is our own thread, not under control by the engine
+            if (auto context = sdk::get_thread_context(); context != nullptr) try {
+                context->local_frame_gc();
+            } catch(...) {
+                spdlog::error("Failed to run local frame GC.");
             }
 
             m_game_data_initialized = true;
