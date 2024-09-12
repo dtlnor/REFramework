@@ -6,6 +6,7 @@
 #include <glm/gtx/transform.hpp>
 
 #include <sdk/TDBVer.hpp>
+#include <reframework/API.hpp>
 
 #if TDB_VER <= 49
 #include "sdk/regenny/re7/via/Window.hpp"
@@ -48,6 +49,7 @@
 #include "utility/Module.hpp"
 #include "utility/Memory.hpp"
 #include "utility/Registry.hpp"
+#include "utility/ScopeGuard.hpp"
 
 #include "FirstPerson.hpp"
 #include "ManualFlashlight.hpp"
@@ -76,6 +78,18 @@ std::optional<regenny::via::Size> g_previous_size{};
 
 // Purpose: spoof the render target size to the size of the HMD displays
 void VR::on_view_get_size(REManagedObject* scene_view, float* result) {
+    // There are some very dumb optimizations that cause set_DisplayType
+    // to go through this hook. This function is actually something like "updateSceneView"
+    static thread_local bool already_inside = false;
+
+    if (already_inside) {
+        return;
+    }
+
+    already_inside = true;
+
+    utility::ScopeGuard _{ [&]() { already_inside = false; } };
+
     if (!g_framework->is_ready()) {
         return;
     }
@@ -92,7 +106,7 @@ void VR::on_view_get_size(REManagedObject* scene_view, float* result) {
     auto window = regenny_view->window;
 
     static auto via_scene_view = sdk::find_type_definition("via.SceneView");
-    static auto set_display_type_method = via_scene_view->get_method("set_DisplayType");
+    static auto set_display_type_method = via_scene_view != nullptr ? via_scene_view->get_method("set_DisplayType") : nullptr;
 
     // Force the display to stretch to the window size
     if (set_display_type_method != nullptr) {
@@ -194,8 +208,19 @@ void VR::on_view_get_size(REManagedObject* scene_view, float* result) {
     }
 
     // spoof the size to the HMD's size
+#if TDB_VER < 73
     result[0] = wanted_width;
     result[1] = wanted_height;
+#else
+    // Stupid optimizations cause the game to not use the result variant of this function
+    // but rather update the current scene view's size directly.
+    regenny_view->size.w = wanted_width;
+    regenny_view->size.h = wanted_height;
+    //regenny_view->custom_display_size.w = wanted_width;
+    //regenny_view->custom_display_size.h = wanted_height;
+    //regenny_view->present_rect.w = wanted_width;
+    //regenny_view->present_rect.h = wanted_height;
+#endif
 }
 
 void VR::on_camera_get_projection_matrix(REManagedObject* camera, Matrix4x4f* result) {
@@ -2368,6 +2393,11 @@ bool VR::on_pre_gui_draw_element(REComponent* gui_element, void* primitive_conte
             return false;
 #endif
 
+#if TDB_VER >= 73
+        case "ui0199"_fnv: // weird black bars in Kunitsu-Gami
+            return false;
+#endif
+
         default:
             break;
         };
@@ -2691,12 +2721,16 @@ bool VR::on_pre_gui_draw_element(REComponent* gui_element, void* primitive_conte
                         static auto mhrise_speech_balloon_typedef = sdk::find_type_definition(game_namespace("gui.GuiCommonNpcSpeechBalloon"));
                         static auto mhrise_head_message_typedef = sdk::find_type_definition(game_namespace("gui.GuiCommonHeadMessage"));
                         static auto mhrise_otomo_head_message_typedef = sdk::find_type_definition(game_namespace("gui.GuiCommonOtomoHeadMessage"));
+                        static auto kg_float_icon_behavior = sdk::find_type_definition("app.FloatIconBehavior");
+                        static auto kg_general_vital_gauge_behavior = sdk::find_type_definition("app.GeneralVitalGaugeBehavior");
 
                         static auto gameobject_elements_list = {
                             mhrise_npc_head_message_typedef,
                             mhrise_speech_balloon_typedef,
                             mhrise_head_message_typedef,
-                            mhrise_otomo_head_message_typedef
+                            mhrise_otomo_head_message_typedef,
+                            kg_float_icon_behavior,
+                            kg_general_vital_gauge_behavior
                         };
                         
                         // Fix position of interaction icons
@@ -2739,6 +2773,8 @@ bool VR::on_pre_gui_draw_element(REComponent* gui_element, void* primitive_conte
                                 if (parent != nullptr) {
                                     Vector4f offset{};
 
+                                    std::optional<float> custom_ui_scale = std::nullopt;
+
                                     if (element_type == mhrise_speech_balloon_typedef) {
                                         static auto pos_data_field = mhrise_speech_balloon_typedef->get_field("posData");
                                         static auto npc_message_pos = pos_data_field->get_type()->get_field("NpcMessagePos");
@@ -2770,9 +2806,33 @@ bool VR::on_pre_gui_draw_element(REComponent* gui_element, void* primitive_conte
                                         offset = Vector4f{0.0f, y_offset, 0.0f, 0.0f};
                                     } else if (element_type == mhrise_otomo_head_message_typedef) { //airou and dog
                                         offset = Vector4f{0.0, 1.0f, 0.0f, 0.0f};
+                                    } else if (element_type == kg_float_icon_behavior) {
+                                        static auto param_field = kg_float_icon_behavior->get_field("_Param");
+                                        static auto world_pos_field = param_field != nullptr ? param_field->get_type()->get_field("WorldPos") : nullptr;
+
+                                        if (world_pos_field != nullptr) {
+                                            auto param = param_field->get_data<::REManagedObject*>(element_comp);
+
+                                            if (param != nullptr) {
+                                                offset = world_pos_field->get_data<Vector4f>(param);
+                                                custom_ui_scale = 5.0f;
+                                            }
+                                        }
+                                    } else if (element_type == kg_general_vital_gauge_behavior) {
+                                        static auto param_field = kg_general_vital_gauge_behavior->get_field("_OpenParam");
+                                        static auto world_pos_field = param_field != nullptr ? param_field->get_type()->get_field("WorldPos") : nullptr;
+
+                                        if (world_pos_field != nullptr) {
+                                            auto param = param_field->get_data<::REManagedObject*>(element_comp);
+
+                                            if (param != nullptr) {
+                                                offset = world_pos_field->get_data<Vector4f>(param);
+                                                custom_ui_scale = 5.0f;
+                                            }
+                                        }
                                     }
 
-                                    fix_2d_position(sdk::get_transform_position(parent) + offset);
+                                    fix_2d_position(sdk::get_transform_position(parent) + offset, true, custom_ui_scale);
                                 } else {
                                     fix_2d_position(original_game_object_pos);
                                 }
@@ -3062,6 +3122,7 @@ void VR::on_end_rendering(void* entry) {
                 "UpdateMovie", // Causes movies to play twice as fast if ran again
                 "UpdateSpeedTree",
                 "UpdateHansoft",
+                "UpdatePuppet",
                 // The dynamics stuff causes a cloth physics step in the right eye
                 "BeginRenderingDynamics",
                 "BeginDynamics",
@@ -3069,7 +3130,9 @@ void VR::on_end_rendering(void* entry) {
                 "EndDynamics",
                 "EndPhysics",
                 "RenderDynamics",
+#ifndef DD2
                 "RenderLandscape",
+#endif
                 "DevelopRenderer",
                 "DrawWidget"
             };

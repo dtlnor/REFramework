@@ -24,11 +24,20 @@ namespace sdk {
 
     sdk::VM* VM::get() {
         update_pointers();
+
+        if (s_global_context == nullptr) {
+            return nullptr;
+        }
+
         return *s_global_context;
     }
 
     REThreadContext* VM::get_thread_context(int32_t unk /*= -1*/) {
         update_pointers();
+
+        if (s_get_thread_context == nullptr) {
+            return nullptr;
+        }
 
         return s_get_thread_context(this, unk);
     }
@@ -86,7 +95,7 @@ namespace sdk {
         std::unique_lock lock{ s_mutex };
 
         utility::ScopeGuard sg{ [&]() {
-                s_fully_updated_pointers = true;
+                s_fully_updated_pointers = s_global_context != nullptr && s_get_thread_context != nullptr;
             } 
         };
 
@@ -148,22 +157,31 @@ namespace sdk {
             return;
         }
 
-        s_global_context = (decltype(s_global_context))utility::calculate_absolute(*ref + context_pattern->ctx_offset);
-        s_get_thread_context = (decltype(s_get_thread_context))utility::calculate_absolute(*ref + context_pattern->get_thread_context_offset);
+        const auto potential_context = (decltype(s_global_context))utility::calculate_absolute(*ref + context_pattern->ctx_offset);
+        bool found_tdb = false;
+
+        if (*potential_context == nullptr) {
+            spdlog::info("[VM::update_pointers] Context is null.");
+            return;
+        }
+
+        sdk::RETypeDB* tdb = nullptr;
 
         for (auto i = 0; i < 0x20000; i += sizeof(void*)) {
-            auto ptr = *(sdk::RETypeDB**)((uintptr_t)*s_global_context + i);
+            auto ptr = *(sdk::RETypeDB**)((uintptr_t)*potential_context + i);
 
             if (ptr == nullptr || IsBadReadPtr(ptr, sizeof(void*)) || ((uintptr_t)ptr & (sizeof(void*) - 1)) != 0) {
                 continue;
             }
 
             if (*(uint32_t*)ptr == *(uint32_t*)"TDB") {
+                tdb = ptr; 
                 const auto version = *(uint32_t*)((uintptr_t)ptr + 4);
 
                 s_tdb_version = version;
                 s_type_db_offset = i;
                 s_static_tbl_offset = s_type_db_offset - 0x30; // hope this holds true for the older gameS!!!!!!!!!!!!!!!!!!!
+                found_tdb = true;
                 spdlog::info("[VM::update_pointers] s_type_db_offset: {:x}", s_type_db_offset);
                 spdlog::info("[VM::update_pointers] s_static_tbl_offset: {:x}", s_static_tbl_offset);
                 spdlog::info("[VM::update_pointers] TDB Version: {}", version);
@@ -171,6 +189,14 @@ namespace sdk {
                 break;
             }
         }
+
+        if (!found_tdb) {
+            spdlog::error("[VM::update_pointers] Unable to find TDB inside VM");
+            return;
+        }
+
+        s_global_context = potential_context;
+        s_get_thread_context = (decltype(s_get_thread_context))utility::calculate_absolute(*ref + context_pattern->get_thread_context_offset);
 
         spdlog::info("[VM::update_pointers] s_global_context: {:x}", (uintptr_t)s_global_context);
         spdlog::info("[VM::update_pointers] s_get_thread_context: {:x}", (uintptr_t)s_get_thread_context);
@@ -181,13 +207,16 @@ namespace sdk {
 #if TDB_VER >= 71
         if (s_global_context != nullptr && *s_global_context != nullptr) {
             auto static_tbl = (REStaticTbl**)((uintptr_t)*s_global_context + s_static_tbl_offset);
-            if (IsBadReadPtr(*static_tbl, sizeof(void*)) || ((uintptr_t)*static_tbl & (sizeof(void*) - 1)) != 0) {
+            bool found_static_tbl_offset = false;
+            const auto before_static_tbl_size = *(uint32_t*)((uintptr_t)static_tbl + sizeof(void*));
+            spdlog::info("[VM::update_pointers] Static table size (before): {}", *(uint32_t*)((uintptr_t)static_tbl + sizeof(void*)));
+            if (IsBadReadPtr(*static_tbl, sizeof(void*)) || ((uintptr_t)*static_tbl & (sizeof(void*) - 1)) != 0 || before_static_tbl_size > 9999999 || before_static_tbl_size < 2000) {
                 spdlog::info("[VM::update_pointers] Static table offset is bad, correcting...");
 
                 // We are looking for the two arrays, the static field table, and the static field "initialized table"
                 // The initialized table tells whether a specific entry in the static field table has been initialized or not
                 // so they both should have the same size, easy to find
-                for (auto i = sizeof(void*); i < 0x100; i+= sizeof(void*)) {
+                for (auto i = sizeof(void*); i < 0x100; i+= sizeof(void*)) try {
                     const auto& ptr = *(REStaticTbl**)((uintptr_t)*s_global_context + (s_type_db_offset - i));
 
                     if (IsBadReadPtr(ptr, sizeof(void*)) || ((uintptr_t)ptr & (sizeof(void*) - 1)) != 0) {
@@ -210,9 +239,23 @@ namespace sdk {
                     if (previous_count == potential_count) {
                         spdlog::info("[VM::update_pointers] Found static table at {:x} (offset {:x})", (uintptr_t)ptr, previous_offset);
                         s_static_tbl_offset = previous_offset;
+                        found_static_tbl_offset = true;
                         break;
                     }
+                } catch (...) {
+                    continue;
                 }
+            } else {
+                found_static_tbl_offset = true;
+            }
+
+            // Just make it return null if we can't find it
+            // We do this so the consumer can do while(sdk::VM::get() != nullptr) { ... } to wait for everything to be valid
+            if (!found_static_tbl_offset) {
+                spdlog::error("[VM::update_pointers] Unable to find static table offset.");
+                s_global_context = nullptr;
+                s_get_thread_context = nullptr;
+                return;
             }
         }
 #endif
@@ -248,6 +291,93 @@ namespace sdk {
         48 8B CF                                      mov     rcx, rdi
         */
 
+        auto alternative_invoke_scan = [&]() -> bool {
+            auto tdb_references = utility::scan_displacement_references(mod, (uintptr_t)tdb);
+
+            if (tdb_references.empty()) {
+                spdlog::info("[VM::update_pointers] Unable to find TDB references.");
+                return false;
+            }
+
+            for (const auto& ref : tdb_references) {
+                const auto fn_start = utility::find_function_start(ref);
+
+                if (!fn_start) {
+                    continue;
+                }
+
+                spdlog::info("[VM::update_pointers] Disassembling function at {:x}", *fn_start);
+
+                bool found = false;
+
+                utility::exhaustive_decode((uint8_t*)*fn_start, 1000, [&](utility::ExhaustionContext& ctx) -> utility::ExhaustionResult {
+                    if (found) {
+                        return utility::ExhaustionResult::BREAK;
+                    }
+
+                    if (std::string_view{ctx.instrux.Mnemonic} == "CALL") {
+                        return utility::ExhaustionResult::STEP_OVER;
+                    }
+
+                    if (std::string_view{ctx.instrux.Mnemonic} != "LEA") {
+                        return utility::ExhaustionResult::CONTINUE;
+                    }
+
+                    const auto disp = utility::resolve_displacement(ctx.addr);
+
+                    if (!disp) {
+                        return utility::ExhaustionResult::CONTINUE;
+                    }
+
+                    try {
+                        uintptr_t* functions = (uintptr_t*)*disp;
+
+                        // First pointer must always be null
+                        if (functions[0] != 0) {
+                            return utility::ExhaustionResult::CONTINUE;
+                        }
+
+                        // Rest of pointers are not null and point somewhere within the game module
+                        for (auto i = 1; i < 100; ++i) {
+                            if (functions[i] == 0 || IsBadReadPtr(&functions[i], sizeof(void*))) {
+                                return utility::ExhaustionResult::CONTINUE;
+                            }
+
+                            if (utility::get_module_within(functions[i]).value_or(nullptr) != mod) {
+                                return utility::ExhaustionResult::CONTINUE;
+                            }
+
+                            /*const auto ptr_fn_start = utility::find_function_start(functions[i]);
+
+                            if (!ptr_fn_start) {
+                                return utility::ExhaustionResult::CONTINUE;
+                            }
+
+                            if (*ptr_fn_start != functions[i]) {
+                                break;
+                            }*/
+                        }
+
+                        s_invoke_tbl = (sdk::InvokeMethod*)functions;
+                        found = true;
+
+                        spdlog::info("[VM::update_pointers] s_invoke_tbl: {:x}", (uintptr_t)s_invoke_tbl);
+
+                        return utility::ExhaustionResult::BREAK;
+                    } catch (...) {
+                        return utility::ExhaustionResult::CONTINUE;
+                    }
+
+                    return utility::ExhaustionResult::CONTINUE;
+                });
+
+                if (found) {
+                    return true;
+                }
+            }
+
+            return false;
+        };
 
         std::optional<uintptr_t> method_inside_invoke_tbl{std::nullopt};
 
@@ -259,8 +389,39 @@ namespace sdk {
                 break;
             }
         }
+
         if (!method_inside_invoke_tbl) {
-            spdlog::info("[VM::update_pointers] Unable to find method inside invoke table.");
+            spdlog::info("[VM::update_pointers] Unable to find method inside invoke table. Trying fallback scan...");
+            const auto anchor = utility::scan(mod, "8D 56 FF 48 8B CF E8 ? ? ? ?");
+
+            if (!anchor) {
+                spdlog::info("[VM::update_pointers] Unable to find anchor for invoke table, trying alternative scan...");
+
+                if (!alternative_invoke_scan()) {
+                    spdlog::info("[VM::update_pointers] Unable to find invoke table.");
+                    return;
+                }
+
+                return;
+            }
+
+            const auto lea_rdx = utility::scan_reverse(*anchor, 0x100, "48 8D 15 ? ? ? ?");
+
+            if (!lea_rdx) {
+                spdlog::info("[VM::update_pointers] Unable to find lea rdx for invoke table.");
+
+                if (!alternative_invoke_scan()) {
+                    spdlog::info("[VM::update_pointers] Unable to find invoke table.");
+                    return;
+                }
+
+                return;
+            }
+
+            s_invoke_tbl = (sdk::InvokeMethod*)utility::resolve_displacement(*lea_rdx).value_or(0);
+
+            spdlog::info("[VM::update_pointers] s_invoke_tbl: {:x}", (uintptr_t)s_invoke_tbl);
+
             return;
         }
 
@@ -270,6 +431,12 @@ namespace sdk {
 
         if (!ptr_inside_invoke_tbl) {
             spdlog::info("[VM::update_pointers] Unable to find ptr inside invoke table.");
+
+            if (!alternative_invoke_scan()) {
+                spdlog::info("[VM::update_pointers] Unable to find invoke table.");
+                return;
+            }
+
             return;
         }
 
