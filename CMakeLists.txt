@@ -105,13 +105,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(directxtk)
 
-message(STATUS "Fetching directxtk12 (528801aa6dd8d628c2f756c41a76d300f47de478)...")
+message(STATUS "Fetching directxtk12 (be5dfc7e391aefaa4eeab8e8a08f7e2669e56cbb)...")
 FetchContent_Declare(
 	directxtk12
 	GIT_REPOSITORY
 		https://github.com/microsoft/DirectXTK12
 	GIT_TAG
-		528801aa6dd8d628c2f756c41a76d300f47de478
+		be5dfc7e391aefaa4eeab8e8a08f7e2669e56cbb
 )
 FetchContent_MakeAvailable(directxtk12)
 
@@ -135,13 +135,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(bddisasm)
 
-message(STATUS "Fetching kananlib (61a04d4219e3cb81b524a6990d3924289982bbf6)...")
+message(STATUS "Fetching kananlib (8b29e1694dbf4ad4c878ff54bcbcabf280b37168)...")
 FetchContent_Declare(
 	kananlib
 	GIT_REPOSITORY
 		https://github.com/cursey/kananlib
 	GIT_TAG
-		61a04d4219e3cb81b524a6990d3924289982bbf6
+		8b29e1694dbf4ad4c878ff54bcbcabf280b37168
 )
 FetchContent_MakeAvailable(kananlib)
 
@@ -2226,6 +2226,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowsMessageHook.cpp"
 		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
+		"src/mods/BackBufferRenderer.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
 		"src/mods/FirstPerson.cpp"
@@ -2276,6 +2277,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowFilter.hpp"
 		"src/WindowsMessageHook.hpp"
 		"src/mods/APIProxy.hpp"
+		"src/mods/BackBufferRenderer.hpp"
 		"src/mods/Camera.hpp"
 		"src/mods/DeveloperTools.hpp"
 		"src/mods/FirstPerson.hpp"
@@ -2314,6 +2316,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
 		"src/cimgui/cimgui.h"
+		"src/mods/spritefonts/Roboto.spritefont.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -2433,6 +2436,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowsMessageHook.cpp"
 		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
+		"src/mods/BackBufferRenderer.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
 		"src/mods/FirstPerson.cpp"
@@ -2483,6 +2487,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowFilter.hpp"
 		"src/WindowsMessageHook.hpp"
 		"src/mods/APIProxy.hpp"
+		"src/mods/BackBufferRenderer.hpp"
 		"src/mods/Camera.hpp"
 		"src/mods/DeveloperTools.hpp"
 		"src/mods/FirstPerson.hpp"
@@ -2521,6 +2526,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
 		"src/cimgui/cimgui.h"
+		"src/mods/spritefonts/Roboto.spritefont.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -4305,6 +4311,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowsMessageHook.cpp"
 		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
+		"src/mods/BackBufferRenderer.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
 		"src/mods/FirstPerson.cpp"
@@ -4355,6 +4362,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowFilter.hpp"
 		"src/WindowsMessageHook.hpp"
 		"src/mods/APIProxy.hpp"
+		"src/mods/BackBufferRenderer.hpp"
 		"src/mods/Camera.hpp"
 		"src/mods/DeveloperTools.hpp"
 		"src/mods/FirstPerson.hpp"
@@ -4393,6 +4401,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
 		"src/cimgui/cimgui.h"
+		"src/mods/spritefonts/Roboto.spritefont.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -4512,6 +4521,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowsMessageHook.cpp"
 		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
+		"src/mods/BackBufferRenderer.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
 		"src/mods/FirstPerson.cpp"
@@ -4562,6 +4572,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowFilter.hpp"
 		"src/WindowsMessageHook.hpp"
 		"src/mods/APIProxy.hpp"
+		"src/mods/BackBufferRenderer.hpp"
 		"src/mods/Camera.hpp"
 		"src/mods/DeveloperTools.hpp"
 		"src/mods/FirstPerson.hpp"
@@ -4600,6 +4611,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
 		"src/cimgui/cimgui.h"
+		"src/mods/spritefonts/Roboto.spritefont.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -4719,6 +4731,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowsMessageHook.cpp"
 		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
+		"src/mods/BackBufferRenderer.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
 		"src/mods/FirstPerson.cpp"
@@ -4769,6 +4782,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowFilter.hpp"
 		"src/WindowsMessageHook.hpp"
 		"src/mods/APIProxy.hpp"
+		"src/mods/BackBufferRenderer.hpp"
 		"src/mods/Camera.hpp"
 		"src/mods/DeveloperTools.hpp"
 		"src/mods/FirstPerson.hpp"
@@ -4807,6 +4821,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
 		"src/cimgui/cimgui.h"
+		"src/mods/spritefonts/Roboto.spritefont.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -7425,6 +7440,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowsMessageHook.cpp"
 		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
+		"src/mods/BackBufferRenderer.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
 		"src/mods/FirstPerson.cpp"
@@ -7475,6 +7491,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowFilter.hpp"
 		"src/WindowsMessageHook.hpp"
 		"src/mods/APIProxy.hpp"
+		"src/mods/BackBufferRenderer.hpp"
 		"src/mods/Camera.hpp"
 		"src/mods/DeveloperTools.hpp"
 		"src/mods/FirstPerson.hpp"
@@ -7513,6 +7530,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
 		"src/cimgui/cimgui.h"
+		"src/mods/spritefonts/Roboto.spritefont.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -7632,6 +7650,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowsMessageHook.cpp"
 		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
+		"src/mods/BackBufferRenderer.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
 		"src/mods/FirstPerson.cpp"
@@ -7682,6 +7701,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowFilter.hpp"
 		"src/WindowsMessageHook.hpp"
 		"src/mods/APIProxy.hpp"
+		"src/mods/BackBufferRenderer.hpp"
 		"src/mods/Camera.hpp"
 		"src/mods/DeveloperTools.hpp"
 		"src/mods/FirstPerson.hpp"
@@ -7720,6 +7740,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
 		"src/cimgui/cimgui.h"
+		"src/mods/spritefonts/Roboto.spritefont.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -8673,6 +8694,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowsMessageHook.cpp"
 		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
+		"src/mods/BackBufferRenderer.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
 		"src/mods/FirstPerson.cpp"
@@ -8723,6 +8745,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowFilter.hpp"
 		"src/WindowsMessageHook.hpp"
 		"src/mods/APIProxy.hpp"
+		"src/mods/BackBufferRenderer.hpp"
 		"src/mods/Camera.hpp"
 		"src/mods/DeveloperTools.hpp"
 		"src/mods/FirstPerson.hpp"
@@ -8761,6 +8784,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
 		"src/cimgui/cimgui.h"
+		"src/mods/spritefonts/Roboto.spritefont.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -9712,6 +9736,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowsMessageHook.cpp"
 		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
+		"src/mods/BackBufferRenderer.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
 		"src/mods/FirstPerson.cpp"
@@ -9762,6 +9787,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowFilter.hpp"
 		"src/WindowsMessageHook.hpp"
 		"src/mods/APIProxy.hpp"
+		"src/mods/BackBufferRenderer.hpp"
 		"src/mods/Camera.hpp"
 		"src/mods/DeveloperTools.hpp"
 		"src/mods/FirstPerson.hpp"
@@ -9800,6 +9826,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
 		"src/cimgui/cimgui.h"
+		"src/mods/spritefonts/Roboto.spritefont.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -10753,6 +10780,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowsMessageHook.cpp"
 		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
+		"src/mods/BackBufferRenderer.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
 		"src/mods/FirstPerson.cpp"
@@ -10803,6 +10831,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowFilter.hpp"
 		"src/WindowsMessageHook.hpp"
 		"src/mods/APIProxy.hpp"
+		"src/mods/BackBufferRenderer.hpp"
 		"src/mods/Camera.hpp"
 		"src/mods/DeveloperTools.hpp"
 		"src/mods/FirstPerson.hpp"
@@ -10841,6 +10870,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
 		"src/cimgui/cimgui.h"
+		"src/mods/spritefonts/Roboto.spritefont.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -11794,6 +11824,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowsMessageHook.cpp"
 		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
+		"src/mods/BackBufferRenderer.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
 		"src/mods/FirstPerson.cpp"
@@ -11844,6 +11875,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowFilter.hpp"
 		"src/WindowsMessageHook.hpp"
 		"src/mods/APIProxy.hpp"
+		"src/mods/BackBufferRenderer.hpp"
 		"src/mods/Camera.hpp"
 		"src/mods/DeveloperTools.hpp"
 		"src/mods/FirstPerson.hpp"
@@ -11882,6 +11914,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
 		"src/cimgui/cimgui.h"
+		"src/mods/spritefonts/Roboto.spritefont.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -12835,6 +12868,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowsMessageHook.cpp"
 		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
+		"src/mods/BackBufferRenderer.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
 		"src/mods/FirstPerson.cpp"
@@ -12885,6 +12919,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowFilter.hpp"
 		"src/WindowsMessageHook.hpp"
 		"src/mods/APIProxy.hpp"
+		"src/mods/BackBufferRenderer.hpp"
 		"src/mods/Camera.hpp"
 		"src/mods/DeveloperTools.hpp"
 		"src/mods/FirstPerson.hpp"
@@ -12923,6 +12958,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
 		"src/cimgui/cimgui.h"
+		"src/mods/spritefonts/Roboto.spritefont.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
@@ -13876,6 +13912,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowsMessageHook.cpp"
 		"src/cimgui/cimgui.cpp"
 		"src/mods/APIProxy.cpp"
+		"src/mods/BackBufferRenderer.cpp"
 		"src/mods/Camera.cpp"
 		"src/mods/DeveloperTools.cpp"
 		"src/mods/FirstPerson.cpp"
@@ -13926,6 +13963,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/WindowFilter.hpp"
 		"src/WindowsMessageHook.hpp"
 		"src/mods/APIProxy.hpp"
+		"src/mods/BackBufferRenderer.hpp"
 		"src/mods/Camera.hpp"
 		"src/mods/DeveloperTools.hpp"
 		"src/mods/FirstPerson.hpp"
@@ -13964,6 +14002,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"src/re2-imgui/re2_imconfig.hpp"
 		"src/utility/ImGui.hpp"
 		"src/cimgui/cimgui.h"
+		"src/mods/spritefonts/Roboto.spritefont.h"
 		"src/re2-imgui/af_fadef.h"
 		"src/re2-imgui/imgui_impl_dx11.h"
 		"src/re2-imgui/imgui_impl_dx12.h"
