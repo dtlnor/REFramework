@@ -307,6 +307,10 @@ void IntegrityCheckBypass::ignore_application_entries() {
     Hooks::get()->ignore_application_entry(0x00c0ab9309584734);
     Hooks::get()->ignore_application_entry(0xa474f1d3a294e6a4);
 #endif
+#if TDB_VER >= 74
+    Hooks::get()->ignore_application_entry(0x00ec4793097cd833);
+    Hooks::get()->ignore_application_entry(0x00d85893096c4c0c);
+#endif
 }
 
 void IntegrityCheckBypass::immediate_patch_re8() {
@@ -519,6 +523,212 @@ void* IntegrityCheckBypass::renderer_create_blas_hook(void* a1, void* a2, void* 
     return s_renderer_create_blas_hook->get_original<decltype(renderer_create_blas_hook)>()(a1, a2, a3, a4, a5);
 }
 
+// This is used to nuke the heap allocated code that causes crashes
+// when debuggers are attached and other integrity checks.
+// They happen to be in the same (heap allocated) executable section, so we can just
+// replace every byte with a RET instruction.
+void IntegrityCheckBypass::nuke_heap_allocated_code(uintptr_t addr) {
+    // Get the base of the memory region.
+    MEMORY_BASIC_INFORMATION mbi{};
+    if (VirtualQuery((LPCVOID)addr, &mbi, sizeof(mbi)) == 0) {
+        spdlog::error("[IntegrityCheckBypass]: VirtualQuery failed!");
+        return;
+    }
+    
+    // Get the end of the memory region.
+    const auto start = (uintptr_t)mbi.BaseAddress;
+    const auto end = (uintptr_t)mbi.BaseAddress + mbi.RegionSize;
+
+    spdlog::info("[IntegrityCheckBypass]: Nuking heap allocated code at 0x{:X} - 0x{:X}", start, end);
+
+    // Fix the protection of the memory region.
+    ProtectionOverride _{(void*)start, mbi.RegionSize, PAGE_EXECUTE_READWRITE};
+
+    // Replace every single byte with a RET (C3) instruction.
+    std::memset((void*)start, 0xC3, mbi.RegionSize);
+
+    spdlog::info("[IntegrityCheckBypass]: Nuked heap allocated code at 0x{:X}", start);
+}
+
+void IntegrityCheckBypass::anti_debug_watcher() try {
+    static const auto ntdll = GetModuleHandleW(L"ntdll.dll");
+    static const auto dbg_ui_remote_breakin = ntdll != nullptr ? GetProcAddress(ntdll, "DbgUiRemoteBreakin") : nullptr;
+    static auto original_dbg_ui_remote_breakin_bytes = dbg_ui_remote_breakin != nullptr ? utility::get_original_bytes(dbg_ui_remote_breakin) : std::optional<std::vector<uint8_t>>{};
+
+    if (dbg_ui_remote_breakin == nullptr) {
+        return;
+    }
+
+    // We can generally assume it's not hooked at this point if the original bytes are empty.
+    if (!original_dbg_ui_remote_breakin_bytes || original_dbg_ui_remote_breakin_bytes->empty()) {
+        spdlog::info("[IntegrityCheckBypass]: Manually copying original bytes for DbgUiRemoteBreakin.");
+        if (!original_dbg_ui_remote_breakin_bytes) {
+            original_dbg_ui_remote_breakin_bytes = std::vector<uint8_t>{};
+        }
+    }
+
+    if (original_dbg_ui_remote_breakin_bytes->size() < 32) {
+        std::copy_n((uint8_t*)dbg_ui_remote_breakin + original_dbg_ui_remote_breakin_bytes->size(), 32 - original_dbg_ui_remote_breakin_bytes->size(), std::back_inserter(*original_dbg_ui_remote_breakin_bytes));
+    }
+
+    const uint64_t* first_8_bytes = (uint64_t*)dbg_ui_remote_breakin;
+    const uint8_t* first_8_bytes_ptr = (uint8_t*)dbg_ui_remote_breakin;
+
+    if (*(uint64_t*)original_dbg_ui_remote_breakin_bytes->data() != *first_8_bytes) {
+        spdlog::info("[IntegrityCheckBypass]: DbgUiRemoteBreakin was hooked, restoring original bytes.");
+
+        if (first_8_bytes_ptr[0] == 0xE9) {
+            spdlog::info("[IntegrityCheckBypass]: DbgUiRemoteBreakin was directly hooked, resolving...");
+            const auto resolved_jmp = utility::calculate_absolute((uintptr_t)dbg_ui_remote_breakin + 1);
+            const auto is_heap_allocated = utility::get_module_within(resolved_jmp).value_or(nullptr) == nullptr;
+
+            if (is_heap_allocated && !IsBadReadPtr((void*)resolved_jmp, 32)) {
+                spdlog::info("[IntegrityCheckBypass]: Nuking heap allocated code at 0x{:X}", resolved_jmp);
+                nuke_heap_allocated_code(resolved_jmp);
+            }
+        } else if (first_8_bytes_ptr[0] == 0xFF && first_8_bytes_ptr[1] == 0x25) {
+            spdlog::info("[IntegrityCheckBypass]: DbgUiRemoteBreakin was indirectly hooked, resolving...");
+            const auto resolved_ptr = utility::calculate_absolute((uintptr_t)dbg_ui_remote_breakin + 2);
+            const auto resolved_jmp = *(uintptr_t*)resolved_ptr;
+            const auto is_heap_allocated = utility::get_module_within(resolved_jmp).value_or(nullptr) == nullptr;
+
+            if (is_heap_allocated && !IsBadReadPtr((void*)resolved_jmp, 32)) {
+                spdlog::info("[IntegrityCheckBypass]: Nuking heap allocated code at 0x{:X}", resolved_jmp);
+                nuke_heap_allocated_code(resolved_jmp);
+            }
+        }
+        
+        ProtectionOverride _{dbg_ui_remote_breakin, original_dbg_ui_remote_breakin_bytes->size(), PAGE_EXECUTE_READWRITE};
+        std::copy(original_dbg_ui_remote_breakin_bytes->begin(), original_dbg_ui_remote_breakin_bytes->end(), (uint8_t*)dbg_ui_remote_breakin);
+
+        spdlog::info("[IntegrityCheckBypass]: Restored DbgUiRemoteBreakin.");
+    }
+} catch (const std::exception& e) {
+    spdlog::error("[IntegrityCheckBypass]: Exception in anti_debug_watcher: {}", e.what());
+} catch (...) {
+    spdlog::error("[IntegrityCheckBypass]: Unknown exception in anti_debug_watcher!");
+}
+
+void IntegrityCheckBypass::init_anti_debug_watcher() {
+    if (s_anti_anti_debug_thread != nullptr) {
+        return;
+    }
+
+    // Run the original watcher once so we get it at least without creating a thread first.
+    anti_debug_watcher();
+
+    s_anti_anti_debug_thread = std::make_unique<std::jthread>([](std::stop_token stop_token) {
+        spdlog::info("[IntegrityCheckBypass]: Hello from anti_debug_watcher!");
+        spdlog::info("[IntegrityCheckBypass]: Waiting for REFramework startup to finish...");
+
+        while (g_framework == nullptr) {
+            std::this_thread::yield();
+        }
+
+        spdlog::info("[IntegrityCheckBypass]: REFramework startup finished!");
+
+        while (!stop_token.stop_requested()) {
+            anti_debug_watcher();
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+    });
+}
+
+// This allows unencrypted paks to load.
+void IntegrityCheckBypass::sha3_rsa_code_midhook(safetyhook::Context& context) {
+    spdlog::info("[IntegrityCheckBypass]: sha3_code_midhook called!");
+    // Log registers
+    spdlog::info("[IntegrityCheckBypass]: RAX: 0x{:X}", context.rax);
+    spdlog::info("[IntegrityCheckBypass]: RCX: 0x{:X}", context.rcx);
+    spdlog::info("[IntegrityCheckBypass]: RDX: 0x{:X}", context.rdx);
+    spdlog::info("[IntegrityCheckBypass]: R8: 0x{:X}", context.r8);
+    spdlog::info("[IntegrityCheckBypass]: R9: 0x{:X}", context.r9);
+    spdlog::info("[IntegrityCheckBypass]: R10: 0x{:X}", context.r10);
+    spdlog::info("[IntegrityCheckBypass]: R11: 0x{:X}", context.r11);
+    spdlog::info("[IntegrityCheckBypass]: R12: 0x{:X}", context.r12);
+    spdlog::info("[IntegrityCheckBypass]: R13: 0x{:X}", context.r13);
+    spdlog::info("[IntegrityCheckBypass]: R14: 0x{:X}", context.r14);
+    spdlog::info("[IntegrityCheckBypass]: R15: 0x{:X}", context.r15);
+    spdlog::info("[IntegrityCheckBypass]: RSP: 0x{:X}", context.rsp);
+    spdlog::info("[IntegrityCheckBypass]: RIP: 0x{:X}", context.rip);
+    spdlog::info("[IntegrityCheckBypass]: RBP: 0x{:X}", context.rbp);
+    spdlog::info("[IntegrityCheckBypass]: RSI: 0x{:X}", context.rsi);
+    spdlog::info("[IntegrityCheckBypass]: RDI: 0x{:X}", context.rdi);
+
+    enum PakFlags : uint8_t {
+        ENCRYPTED = 0x8
+    };
+
+    const auto pak_flags = (PakFlags)context.r8; // Might change, maybe add automated register detection later
+
+    if ((pak_flags & PakFlags::ENCRYPTED) != 0) {
+        spdlog::info("[IntegrityCheckBypass]: Pak is encrypted, allowing decryption code to run.");
+        return;
+    }
+
+    context.rip = *s_sha3_code_end;
+
+    spdlog::info("[IntegrityCheckBypass]: Unencrypted pak detected, skipping decryption code!");
+}
+
+void IntegrityCheckBypass::restore_unencrypted_paks() {
+    spdlog::info("[IntegrityCheckBypass]: Restoring unencrypted paks...");
+
+    // If this breaks... we'll fix it!
+    const auto game = utility::get_executable();
+    const auto sha3_code_start = utility::scan(game, "C5 F8 57 C0 C5 FC 11 84 24 ? ? ? ? C5 FC 11 84 24 ? ? ? ? C5 FC 11 84 24 ? ? ? ? C5 FC 11 84 24 ? ? ? ? C5 FC 11 44 24 ? 48 C1 E9 ?");
+
+    if (!sha3_code_start) {
+        spdlog::error("[IntegrityCheckBypass]: Could not find sha3_rsa_code_start!");
+        return;
+    }
+    
+    spdlog::info("[IntegrityCheckBypass]: Found sha3_rsa_code_start @ 0x{:X}", *sha3_code_start);
+
+
+    s_sha3_code_end = utility::scan(game, "48 8B 8E C0 00 00 00 48 C1 E9 ?");
+
+    if (!s_sha3_code_end) {
+        spdlog::error("[IntegrityCheckBypass]: Could not find sha3_rsa_code_end, cannot restore unencrypted paks!");
+        return;
+    }
+    
+    spdlog::info("[IntegrityCheckBypass]: Found sha3_rsa_code_end @ 0x{:X}", *s_sha3_code_end);
+
+    s_sha3_rsa_code_midhook = safetyhook::create_mid((void*)*sha3_code_start, &sha3_rsa_code_midhook);
+
+    spdlog::info("[IntegrityCheckBypass]: Created sha3_rsa_code_midhook!");
+
+    const auto previous_instructions = utility::get_disassembly_behind(*s_sha3_code_end);
+
+    // This NOPs out the conditional jump that rejects the PAK file if the integrity check fails.
+    // Normally, the game computes a SHA3-256 hash of the TOC/resource headers before obfuscation.
+    // It then XORs the TOC/resource headers with this hash to make them unreadable.
+    // To verify integrity, the game decrypts a precomputed SHA3-256 hash from the PAK header using RSA.
+    // If the computed SHA3-256 hash of the TOC/resource headers doesn't match the decrypted one, the PAK is rejected.
+    // Without patching, bypassing this check would require obtaining Capcom's private RSA key to sign new hashes,
+    // which is infeasible. Instead, we NOP the conditional jump to force the game to accept modded PAKs.
+    // (Thanks to Rick Gibbed (@gibbed) for the explanation about how SHA3 and RSA fit together in this context)
+    if (!previous_instructions.empty()) {
+        const auto& previous_instruction = previous_instructions.back();
+
+        if (previous_instruction.instrux.BranchInfo.IsBranch && previous_instruction.instrux.BranchInfo.IsConditional) {
+            spdlog::info("[IntegrityCheckBypass]: Found conditional branch instruction @ 0x{:X}, NOPing it", previous_instruction.addr);
+
+            // NOP out the conditional jump
+            std::vector<int16_t> nops{};
+            nops.resize(previous_instruction.instrux.Length);
+            std::fill(nops.begin(), nops.end(), 0x90);
+
+            static auto patch = Patch::create(previous_instruction.addr, nops, true);
+
+            spdlog::info("[IntegrityCheckBypass]: NOP'd out conditional jump!");
+        } else {
+            spdlog::warn("[IntegrityCheckBypass]: Previous instruction is not a conditional branch, cannot NOP it!");
+        }
+    }
+}
+
 void IntegrityCheckBypass::immediate_patch_dd2() {
     // Just like RE4, this deals with the scans that are done every frame on the game's memory.
     // The scans are still performed, but the crash will be avoided.
@@ -531,8 +741,12 @@ void IntegrityCheckBypass::immediate_patch_dd2() {
     spdlog::info("[IntegrityCheckBypass]: Scanning DD2...");
 
     const auto game = utility::get_executable();
+    const auto game_size = utility::get_module_size(game).value_or(0);
+    const auto game_end = (uintptr_t)game + game_size;
 
 #if TDB_VER >= 74
+    init_anti_debug_watcher();
+
     const auto query_performance_frequency = &QueryPerformanceFrequency;
     const auto query_performance_counter = &QueryPerformanceCounter;
 
@@ -545,6 +759,45 @@ void IntegrityCheckBypass::immediate_patch_dd2() {
 
             if (crasher_fn) {
                 spdlog::info("[IntegrityCheckBypass]: Found crasher_fn!");
+
+                auto crasher_fn_ref = utility::scan_displacement_reference(game, *crasher_fn);
+
+                if (crasher_fn_ref) {
+                    spdlog::info("[IntegrityCheckBypass]: Found crasher_fn_ref");
+                }
+
+                if (crasher_fn_ref && *(uint8_t*)(*crasher_fn_ref - 1) == 0xE9) {
+                    crasher_fn_ref = utility::find_function_start(*crasher_fn_ref - 1);
+                } else {
+                    crasher_fn_ref = *crasher_fn;
+                }
+
+                if (crasher_fn_ref) {
+                    spdlog::info("[IntegrityCheckBypass]: Found crasher fn (real)");
+
+                    // We have to use this because I think that the AVX2 scan is broken here for some reason... uh oh...
+                    const auto scanner_fn_middle = utility::scan_relative_reference_scalar((uintptr_t)game, game_size - 0x1000, *crasher_fn_ref, [](uintptr_t addr) {
+                        return *(uint8_t*)(addr - 1) == 0xE8;
+                    });
+
+                    if (scanner_fn_middle) {
+                        spdlog::info("[IntegrityCheckBypass]: Found scanner_fn_middle");
+
+                        const auto scanner_fn = utility::find_function_start_unwind(*scanner_fn_middle);
+
+                        if (scanner_fn) {
+                            spdlog::info("[IntegrityCheckBypass]: Found scanner_fn!");
+                            static auto nuke_patch = Patch::create(*scanner_fn, { 0xC3 }, true); // ret
+                            spdlog::info("[IntegrityCheckBypass]: Patched scanner_fn!");
+                        } else {
+                            spdlog::error("[IntegrityCheckBypass]: Could not find scanner_fn!");
+                        }
+                    } else {
+                        spdlog::error("[IntegrityCheckBypass]: Could not find scanner_fn_middle! (3)");
+                    }
+                } else {
+                    spdlog::error("[IntegrityCheckBypass]: Could not find crasher_fn_ref! (2)");
+                }
 
                 // Make function just ret
                 //static auto patch = Patch::create(*crasher_fn, { 0xC3 }, true);
@@ -594,6 +847,20 @@ void IntegrityCheckBypass::immediate_patch_dd2() {
     } else {
         spdlog::error("[IntegrityCheckBypass]: Could not find createBLAS!");
     }
+
+    static std::vector<Patch::Ptr> sus_constant_patches{};
+
+    for (auto ref = utility::scan(game, "81 ? E1 53 BD 4C");
+         ref.has_value();
+         ref = utility::scan(*ref + 1, (game_end - (*ref + 1)) - 0x1000, "81 ? E1 53 BD 4C"))
+    {
+        // Patch to 0x1337BEEF
+        sus_constant_patches.emplace_back(Patch::create(*ref + 2, { 0xEF, 0xBE, 0x37, 0x13 }, true));
+    }
+
+    spdlog::info("[IntegrityCheckBypass]: Patched {} sus_constants!", sus_constant_patches.size());
+
+    restore_unencrypted_paks();
 #endif
 
     const auto conditional_jmp_block = utility::scan(game, "41 8B ? ? 78 83 ? 07 ? ? 75 ?");

@@ -1014,13 +1014,22 @@ void set_data(void* data, ::sdk::RETypeDefinition* data_type, sol::object& value
                 }
 
                 REManagedObject** field = (REManagedObject**) data;
-                if (field != nullptr && *field != nullptr) {
-                    utility::re_managed_object::release(*field);
+                if (field != nullptr && *field != new_data) {
+                    if (new_data != nullptr) {
+                        utility::re_managed_object::add_ref(new_data);
+                    }
+
+                    // Use a thread-safe atomic exchange. This is what Capcom does for all field assignments.
+                    auto old = *field;
+                    while (_InterlockedCompareExchangePointer((PVOID*)field, new_data, old) != old) {
+                        old = *field;
+                    }
+
+                    if (old != nullptr) {
+                        utility::re_managed_object::release(old);
+                    }
                 }
-                if (new_data != nullptr) {
-                    utility::re_managed_object::add_ref(new_data);
-                }
-                *(REManagedObject**) data = new_data;
+
                 return;
             }
         }
@@ -1570,7 +1579,9 @@ void bindings::open_sdk(ScriptState* s) {
 
             return false;
         },
-        "create_instance", &::sdk::RETypeDefinition::create_instance_full);
+        "create_instance", &::sdk::RETypeDefinition::create_instance_full,
+        "get_types_inheriting_from_this", &::sdk::RETypeDefinition::get_types_inherting_from_this
+    );
 
     auto method_call = [](sdk::REMethodDefinition* def, sol::object obj, sol::variadic_args va) {
         auto l = va.lua_state();

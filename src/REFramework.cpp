@@ -47,17 +47,25 @@ using namespace std::literals;
 std::unique_ptr<REFramework> g_framework{};
 
 void REFramework::hook_monitor() {
+    if (m_do_not_hook_d3d_count.load() > 0) {
+        // Wait until nothing important is happening
+        m_last_present_time = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+        m_last_chance_time = std::chrono::steady_clock::now() + std::chrono::seconds(1);
+        m_has_last_chance = true;
+        return;
+    }
+
     if (!m_hook_monitor_mutex.try_lock()) {
         // If this happens then we can assume execution is going as planned
         // so we can just reset the times so we dont break something
         m_last_present_time = std::chrono::steady_clock::now() + std::chrono::seconds(5);
         m_last_chance_time = std::chrono::steady_clock::now() + std::chrono::seconds(1);
         m_has_last_chance = true;
-    } else {
-        m_hook_monitor_mutex.unlock();
+        return;
     }
 
-    std::scoped_lock _{ m_hook_monitor_mutex };
+    // Take ownership of the mutex with adopt_lock
+    std::lock_guard _{ m_hook_monitor_mutex, std::adopt_lock };
 
     if (g_framework == nullptr) {
         return;
@@ -255,6 +263,7 @@ REFramework::REFramework(HMODULE reframework_module)
     spdlog::info("Total commits: {}", REF_TOTAL_COMMITS);
     spdlog::info("Build date: {}", REF_BUILD_DATE);
     spdlog::info("Build time: {}", REF_BUILD_TIME);
+    spdlog::info("Game name: {}", REFramework::get_game_name());
 
     const auto module_size = *utility::get_module_size(m_game_module);
 
@@ -2018,7 +2027,7 @@ bool REFramework::first_frame_initialize() {
         return is_init_ok;
     }
 
-    std::scoped_lock _{get_hook_monitor_mutex()};
+    auto do_not_hook_d3d = acquire_do_not_hook_d3d();
 
     spdlog::info("Running first frame D3D initialization of mods...");
 
@@ -2232,7 +2241,20 @@ bool REFramework::init_d3d12() {
         // Create back buffer rtvs.
         auto swapchain = m_d3d12_hook->get_swap_chain();
 
-        for (auto i = 0; i <= (int)D3D12::RTV::BACKBUFFER_2; ++i) {
+        DXGI_SWAP_CHAIN_DESC swapchain_desc{};
+
+        if (FAILED(swapchain->GetDesc(&swapchain_desc))) {
+            spdlog::error("[D3D12] Failed to get swap chain description.");
+            return false;
+        }
+        
+        spdlog::info("[D3D12] Swapchain buffer count: {}", swapchain_desc.BufferCount);
+
+        if (swapchain_desc.BufferCount > (int)D3D12::RTV::BACKBUFFER_LAST + 1) {
+            spdlog::warn("[D3D12] Too many back buffers ({} vs {}).", swapchain_desc.BufferCount, (int)D3D12::RTV::BACKBUFFER_LAST + 1);
+        }
+
+        for (auto i = 0; i < (int)swapchain_desc.BufferCount; ++i) {
             if (SUCCEEDED(swapchain->GetBuffer(i, IID_PPV_ARGS(&m_d3d12.rts[i])))) {
                 device->CreateRenderTargetView(m_d3d12.rts[i].Get(), nullptr, m_d3d12.get_cpu_rtv(device, (D3D12::RTV)i));
             } else {
