@@ -5,6 +5,9 @@
 #include <windows.h>
 #include <ShlObj.h>
 
+#include <initguid.h>
+#include <Dbt.h>
+
 #include <spdlog/sinks/basic_file_sink.h>
 
 // minhook, used for AllocateBuffer
@@ -15,7 +18,6 @@ extern "C" {
 #include <imgui.h>
 #include <ImGuizmo.h>
 #include <imnodes.h>
-#include "re2-imgui/af_baidu.hpp"
 #include "re2-imgui/af_faprolight.hpp"
 #include "re2-imgui/font_robotomedium.hpp"
 #include "re2-imgui/imgui_impl_dx11.h"
@@ -43,6 +45,9 @@ extern "C" {
 
 namespace fs = std::filesystem;
 using namespace std::literals;
+
+DEFINE_GUID(GUID_DEVINTERFACE_HID, 0x4D1E55B2L, 0xF16F, 0x11CF, 0x88, 0xCB, 0x00, 0x11, 0x11, 0x00, 0x00, 0x30);
+DEFINE_GUID(XUSB_INTERFACE_CLASS_GUID, 0xEC87F1E3, 0xC13B, 0x4100, 0xB5, 0xF7, 0x8B, 0x84, 0xD5, 0x42, 0x60, 0xCB);
 
 std::unique_ptr<REFramework> g_framework{};
 
@@ -1145,6 +1150,22 @@ void REFramework::remove_set_cursor_pos_patch() {
     m_set_cursor_pos_patch.reset();
 }
 
+// https://github.com/PGGB/DeviceStutterFix
+bool is_device_controller(PDEV_BROADCAST_HDR hdr, WPARAM w_param) {
+    if (hdr->dbch_devicetype == DBT_DEVTYP_DEVICEINTERFACE) {
+        const auto d_interface = (PDEV_BROADCAST_DEVICEINTERFACE)hdr;
+
+        if (d_interface->dbcc_classguid == XUSB_INTERFACE_CLASS_GUID) {
+            spdlog::info("Event {:x}: Relevant device detected", w_param);
+            return true;
+        }
+    }
+
+    spdlog::info("Event {:x}: No relevant device detected", w_param);
+
+    return false;
+}
+
 bool REFramework::on_message(HWND wnd, UINT message, WPARAM w_param, LPARAM l_param) {
     m_last_message_time = std::chrono::steady_clock::now();
 
@@ -1216,6 +1237,21 @@ bool REFramework::on_message(HWND wnd, UINT message, WPARAM w_param, LPARAM l_pa
         }
     } break;
 
+    // Fixes for stuttering when USB devices are removed/inserted
+    // Causes all sorts of random things to happen like DXGI ResizeTarget to get called...
+    // Maybe they forgot to add a break statement for WM_DEVICECHANGE and it falls through to some window resizing case?
+    // https://github.com/PGGB/DeviceStutterFix
+    case WM_DEVICECHANGE:
+        switch (w_param) {
+            case DBT_DEVICEARRIVAL:
+            case DBT_DEVICEREMOVECOMPLETE:
+                return is_device_controller((PDEV_BROADCAST_HDR)l_param, w_param);
+            default:
+                spdlog::info("Event {:x}: skipping", w_param);
+                return false;
+        }
+        
+        break;
     case RE_TOGGLE_CURSOR: {
         const auto is_internal_message = l_param != 0;
         const auto return_value = is_internal_message || !m_draw_ui;
@@ -1420,9 +1456,21 @@ void REFramework::update_fonts() {
     // replace '?' to most flag in WorldObjectsViewer
     ImFontConfig custom_icons{}; 
     custom_icons.FontDataOwnedByAtlas = false;
-    ImFont* fsload = (INVALID_FILE_ATTRIBUTES != ::GetFileAttributesA("reframework_pictographic.mode"))
-        ? fonts->AddFontFromMemoryTTF((void*)af_baidu_ptr, af_baidu_size, (float)m_font_size, &custom_icons, fonts->GetGlyphRangesChineseFull())
-        : fonts->AddFontFromMemoryCompressedTTF(RobotoMedium_compressed_data, RobotoMedium_compressed_size, (float)m_font_size);
+
+    const ImWchar cjk_ranges[] = {
+        0x0020, 0x00FF, // Basic Latin + Latin Supplement
+        0x2000, 0x206F, // General Punctuation
+        0x3000, 0x30FF, // CJK Symbols and Punctuations, Hiragana, Katakana
+        0x3131, 0x3163, // Korean alphabets
+        0x31F0, 0x31FF, // Katakana Phonetic Extensions
+        0xAC00, 0xD7A3, // Korean characters
+        0xFF00, 0xFFEF, // Half-width characters
+        0xFFFD, 0xFFFD, // Invalid
+        0x4e00, 0x9FAF, // CJK Ideograms,
+        0
+    };
+
+    ImFont* fsload = fonts->AddFontFromMemoryCompressedTTF((void*)RobotoCJKSC_Medium_compressed_data, RobotoCJKSC_Medium_compressed_size, (float)m_font_size, &custom_icons, cjk_ranges);
 
     // https://fontawesome.com/
     custom_icons.PixelSnapH = true;
@@ -1597,7 +1645,7 @@ void REFramework::draw_about() {
             License{ "cimgui", license::cimgui },
             License{ "minhook", license::minhook },
             License{ "spdlog", license::spdlog },
-            License{ "robotomedium", license::roboto },
+            License{ "robotocjksc", license::roboto_cjk },
             License{ "openvr", license::openvr },
             License{ "lua", license::lua },
             License{ "sol", license::sol },
@@ -2237,19 +2285,19 @@ bool REFramework::init_d3d12() {
 
     spdlog::info("[D3D12] Creating render targets...");
 
+    auto swapchain = m_d3d12_hook->get_swap_chain();
+
+    DXGI_SWAP_CHAIN_DESC swapchain_desc{};
+
+    if (FAILED(swapchain->GetDesc(&swapchain_desc))) {
+        spdlog::error("[D3D12] Failed to get swap chain description.");
+        return false;
+    }
+
+    spdlog::info("[D3D12] Swapchain buffer count: {}", swapchain_desc.BufferCount);
+
     {
         // Create back buffer rtvs.
-        auto swapchain = m_d3d12_hook->get_swap_chain();
-
-        DXGI_SWAP_CHAIN_DESC swapchain_desc{};
-
-        if (FAILED(swapchain->GetDesc(&swapchain_desc))) {
-            spdlog::error("[D3D12] Failed to get swap chain description.");
-            return false;
-        }
-        
-        spdlog::info("[D3D12] Swapchain buffer count: {}", swapchain_desc.BufferCount);
-
         if (swapchain_desc.BufferCount > (int)D3D12::RTV::BACKBUFFER_LAST + 1) {
             spdlog::warn("[D3D12] Too many back buffers ({} vs {}).", swapchain_desc.BufferCount, (int)D3D12::RTV::BACKBUFFER_LAST + 1);
         }
@@ -2319,7 +2367,7 @@ bool REFramework::init_d3d12() {
     auto& bb = m_d3d12.get_rt(D3D12::RTV::BACKBUFFER_0);
     auto bb_desc = bb->GetDesc();
 
-    if (!ImGui_ImplDX12_Init(device, 3, bb_desc.Format, m_d3d12.srv_desc_heap.Get(),
+    if (!ImGui_ImplDX12_Init(device, swapchain_desc.BufferCount, bb_desc.Format, m_d3d12.srv_desc_heap.Get(),
             m_d3d12.get_cpu_srv(device, D3D12::SRV::IMGUI_FONT_BACKBUFFER), m_d3d12.get_gpu_srv(device, D3D12::SRV::IMGUI_FONT_BACKBUFFER))) {
         spdlog::error("[D3D12] Failed to initialize ImGui.");
         return false;
@@ -2333,7 +2381,7 @@ bool REFramework::init_d3d12() {
     auto& bb_vr = m_d3d12.get_rt(D3D12::RTV::IMGUI);
     auto bb_vr_desc = bb_vr->GetDesc();
 
-    if (!ImGui_ImplDX12_Init(device, 3, bb_vr_desc.Format, m_d3d12.srv_desc_heap.Get(),
+    if (!ImGui_ImplDX12_Init(device, swapchain_desc.BufferCount, bb_vr_desc.Format, m_d3d12.srv_desc_heap.Get(),
             m_d3d12.get_cpu_srv(device, D3D12::SRV::IMGUI_FONT_VR), m_d3d12.get_gpu_srv(device, D3D12::SRV::IMGUI_FONT_VR))) {
         spdlog::error("[D3D12] Failed to initialize ImGui.");
         return false;
