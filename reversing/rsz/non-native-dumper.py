@@ -206,7 +206,7 @@ def generate_native_name(element, use_potential_name, reflection_property, il2cp
     if element is None:
         os.system("Error")
 
-    if element["string"] == True:
+    if element["string"]:
         if use_potential_name:
             # try to find if it is Resource type, return either "String" or "Resource"
             property_type = reflection_property["type"]
@@ -220,7 +220,7 @@ def generate_native_name(element, use_potential_name, reflection_property, il2cp
             elif property_type == "via.resource_handle":
                 return "Resource"
         return "String"
-    elif element["list"] == True:
+    elif element["list"]:
         return generate_native_name(element["element"], use_potential_name, reflection_property, il2cpp_dump)
     elif use_potential_name and reflection_property is not None:
         property_type = reflection_property["type"]
@@ -265,9 +265,10 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
 
     fields_out = []
     struct_str = ""
+    max_parent_level = 10
 
     # Go through parents until we run into a native that we need to insert at the top of the structure
-    for f in range(0, 10):
+    for _ in range(0, max_parent_level):
         if natives is None or "parent" not in e:
             break
 
@@ -296,12 +297,11 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
             append_potential_name = False
 
             # If len not match, we give-up
-            if not (reflection_properties is None) and len(layout) == len(reflection_properties):
+            if reflection_properties is not None and len(layout) == len(reflection_properties):
                 append_potential_name = True
 
                 # sort reflection_properties by its native order
-                order_rp = [(int(v["order"]), (k,v)) for k, v in reflection_properties.items()]
-                reflection_properties = dict([v for _, v in sorted(order_rp)])
+                reflection_properties = dict(sorted(reflection_properties.items(), key=lambda item: int(item[1]["order"])))
 
                 # check align and size to increase accuracy
                 for (property_name, property_value), field in zip(reflection_properties.items(), layout):
@@ -314,7 +314,7 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
 
                     if property_type_code == "Data":
                         continue
-                    if "element" in field and "list" in field and field["list"] == True:
+                    if "element" in field and "list" in field and field["list"]:
                         field_align = field["element"]["align"]
                         field_size = field["element"]["size"]
                     else:
@@ -354,7 +354,7 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
                     "native": True
                 }
 
-                if "element" in field and "list" in field and field["list"] == True:
+                if "element" in field and "list" in field and field["list"]:
                     '''
                     new_entry["element"] = {
                         "type": generate_native_name(field["element"]),
@@ -404,7 +404,7 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
                 else:
                     align_size = als(rsz_entry["align"], int(rsz_entry["size"], 16))
                 
-                if use_typedefs == True:
+                if use_typedefs:
                     if code in code_typedefs:
                         code = code_typedefs[code]
                     else:
@@ -486,7 +486,7 @@ def main(out_postfix="", il2cpp_path="", natives_path=None, use_typedefs=False, 
         struct_str = "// " + entry["fqn"] + "\n"
         struct_str = struct_str + "struct " + key + " {\n"
 
-        fields, struct_body, _, __ = generate_field_entries(il2cpp_dump, natives, key, entry, use_typedefs, unpack_struct = unpack_struct)
+        fields, struct_body, _, __ = generate_field_entries(il2cpp_dump, natives, key, entry, use_typedefs, hardcode_rsz=hardcode_native_rsz)
 
         json_entry["fields"] = fields
         struct_str = struct_str + struct_body
