@@ -271,8 +271,14 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
     for _ in range(0, max_parent_level):
         if natives is None or "parent" not in e:
             break
-
-        if not (parent_name in il2cpp_dump and "RSZ" not in il2cpp_dump[parent_name] and parent_name in natives):
+        
+        # if rsz inside parent, it already inside the current types.
+        # So we just finding the native parent that don't have rsz, it probably is a native type.
+        # And the first native parent should have all the rsz in layout, no need to go further.
+        has_something_usable = parent_name in il2cpp_dump and "RSZ" not in il2cpp_dump[parent_name] and parent_name in natives
+        if parent_name == "via.sound.SoundCurve":
+            input("via.sound.SoundCurve used at "+str(key))
+        if not has_something_usable:
             # Keep going up the heirarchy of parents until we reach something usable
             if "parent" in e and e["parent"] in il2cpp_dump:
                 parent_name = e["parent"]
