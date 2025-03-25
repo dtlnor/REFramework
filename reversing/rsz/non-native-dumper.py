@@ -259,7 +259,7 @@ def enum_fallback(reflection_property, il2cpp_dump={}):
         return "Enum"
     return native_element["RSZ"][0]["code"]
 
-def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs, prefix = "", i=0, struct_i=0, unpack_struct=True):
+def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs, prefix = "", i=0, struct_i=0, unpack_struct=True, hardcode_rsz=None):
     e = il2cpp_entry
     parent_name = key
 
@@ -300,6 +300,24 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
                 else:
                     input(f"Duplicate offset found, offset={field['offset']} at {key} v{temp_i}, press enter to continue")
                 temp_i += 1
+
+            chain_fqn = il2cpp_dump[chain["name"]].get("fqn")
+            if chain_fqn is not None and chain_fqn in hardcode_rsz:
+                cur_crc = il2cpp_dump[chain["name"]].get("crc")
+                hardcode_crc = hardcode_rsz[chain_fqn].get("crc")
+                if hardcode_crc != cur_crc:
+                    print(f"Hardcoded RSZ CRC mismatch for {chain["name"]} ({cur_crc} != {hardcode_crc}), skipping")
+                else:
+                    for _ in range(len(layout)):
+                        field = hardcode_rsz[chain_fqn]["fields"][i]
+                        fields_out.append(field)
+                        struct_str += "    " + field["type"] + " " + field["name"] + ";\n"
+                        i += 1
+                        
+                    struct_str = struct_str + "// " + chain["name"] + " END\n"
+                    continue
+
+
             # Get reflection_properties for guessing native type name.
             reflection_properties = il2cpp_dump[chain["name"]].get("reflection_properties", None)
             append_potential_name = False
@@ -400,7 +418,7 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
             if unpack_struct and code == "Struct" and type in il2cpp_dump and rsz_entry.get("array", 0) != 1:
                 # keep struct type data unpacked for backwards compatibility if it is not an array.
 
-                nested_entry, nested_str, i, struct_i = generate_field_entries(il2cpp_dump, natives, type, il2cpp_dump[type], use_typedefs, "STRUCT_" + name + "_", i, struct_i)
+                nested_entry, nested_str, i, struct_i = generate_field_entries(il2cpp_dump, natives, type, il2cpp_dump[type], use_typedefs, "STRUCT_" + name + "_", i, struct_i, hardcode_rsz=hardcode_rsz)
 
                 if len(nested_entry) > 0:
                     fields_out += nested_entry
@@ -455,7 +473,7 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
     return fields_out, struct_str, i, struct_i
 
 
-def main(out_postfix="", il2cpp_path="", natives_path=None, use_typedefs=False, use_hashkeys=False, include_parents=False, unpack_struct=True):
+def main(out_postfix="", il2cpp_path="", natives_path=None, use_typedefs=False, use_hashkeys=False, include_parents=False, unpack_struct=True, hardcode_native_rsz_path=None):
     if il2cpp_path is None:
         return
 
@@ -469,6 +487,13 @@ def main(out_postfix="", il2cpp_path="", natives_path=None, use_typedefs=False, 
             natives = json.load(f)
     else:
         print("No natives file found, output may be incorrect for some types")
+    
+    hardcode_native_rsz = None
+
+    if hardcode_native_rsz_path is not None:
+        with open(hardcode_native_rsz_path, "r", encoding="utf8") as f:
+            hardcode_native_rsz = json.load(f)
+            print("Hardcoded native RSZ loaded")
 
     out_str = ""
     out_json = {}
