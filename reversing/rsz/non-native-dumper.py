@@ -282,6 +282,7 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
 
         parent_native = natives[parent_name]
         found_anything = False
+        layoutMarker = {}
 
         for chain in parent_native:
             if "layout" not in chain or len(chain["layout"]) == 0:
@@ -292,6 +293,13 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
             
             layout = chain["layout"]
 
+            temp_i = i
+            for field in layout[:]:
+                if field["offset"] not in layoutMarker:
+                    layoutMarker[field["offset"]] = temp_i
+                else:
+                    input(f"Duplicate offset found, offset={field['offset']} at {key} v{temp_i}, press enter to continue")
+                temp_i += 1
             # Get reflection_properties for guessing native type name.
             reflection_properties = il2cpp_dump[chain["name"]].get("reflection_properties", None)
             append_potential_name = False
