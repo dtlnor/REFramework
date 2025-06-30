@@ -881,7 +881,7 @@ def hook_unmapped(emu, access, address, size, value, frame):
         # only NOP out non-return instructions
         # otherwise weird things happen
         if dis.mnemonic != "ret":
-            nops = np.empty(dis.size, dtype=np.byte)
+            nops = np.empty(dis.size, dtype=np.ubyte)
             nops.fill(0x90)
 
             # Fix the history count for RIP
