@@ -659,7 +659,7 @@ void IntegrityCheckBypass::sha3_rsa_code_midhook(safetyhook::Context& context) {
         ENCRYPTED = 0x8
     };
 
-    const auto pak_flags = (PakFlags)context.r8; // Might change, maybe add automated register detection later
+    const auto pak_flags = (PakFlags)context.rax; // Might change, maybe add automated register detection later
 
     if ((pak_flags & PakFlags::ENCRYPTED) != 0) {
         spdlog::info("[IntegrityCheckBypass]: Pak is encrypted, allowing decryption code to run.");
@@ -676,7 +676,7 @@ void IntegrityCheckBypass::restore_unencrypted_paks() {
 
     // If this breaks... we'll fix it!
     const auto game = utility::get_executable();
-    const auto sha3_code_start = utility::scan(game, "C5 F8 57 C0 C5 FC 11 84 24 ? ? ? ? C5 FC 11 84 24 ? ? ? ? C5 FC 11 84 24 ? ? ? ? C5 FC 11 84 24 ? ? ? ? C5 FC 11 44 24 ? 48 C1 E9 ?");
+    const auto sha3_code_start = utility::scan(game, "C5 F8 57 C0 C5 FC 11 84 24 ? ? ? ? C5 FC 11 84 24 ? ? ? ? C5 FC 11 84 24 ? ? ? ? C5 FC 11 84 24 ? ? ? ? C5 FC 11 44 24 ? 48");
 
     if (!sha3_code_start) {
         spdlog::error("[IntegrityCheckBypass]: Could not find sha3_rsa_code_start!");

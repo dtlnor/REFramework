@@ -60,6 +60,7 @@ set(ASMJIT_STATIC ON CACHE BOOL "" FORCE)
 set(DYNAMIC_LOADER ON CACHE BOOL "" FORCE) # OpenXR
 set(BUILD_TOOLS OFF CACHE BOOL "" FORCE) # DirectXTK
 set(SAFETYHOOK_FETCH_ZYDIS ON)
+set(FT_DISABLE_HARFBUZZ ON CACHE BOOL "" FORCE) # Freetype
 
 if ("${CMAKE_BUILD_TYPE}" MATCHES "Release")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MT")
@@ -139,6 +140,15 @@ FetchContent_Declare(safetyhook
 )
 FetchContent_MakeAvailable(safetyhook)
 
+message(STATUS "Fetching freetype (f1cd6dbfa0c98f352b698448f40ac27e8fb3832e)...")
+FetchContent_Declare(freetype
+	GIT_REPOSITORY
+		"https://github.com/freetype/freetype"
+	GIT_TAG
+		f1cd6dbfa0c98f352b698448f40ac27e8fb3832e
+)
+FetchContent_MakeAvailable(freetype)
+
 message(STATUS "Fetching bddisasm (v1.34.10)...")
 FetchContent_Declare(bddisasm
 	GIT_REPOSITORY
@@ -148,12 +158,12 @@ FetchContent_Declare(bddisasm
 )
 FetchContent_MakeAvailable(bddisasm)
 
-message(STATUS "Fetching kananlib (d659e3b8312e26ba19329f96b73ba88d1211bfdb)...")
+message(STATUS "Fetching kananlib (3a2448d5b12afd607f02af231571ec76443cb545)...")
 FetchContent_Declare(kananlib
 	GIT_REPOSITORY
 		"https://github.com/cursey/kananlib"
 	GIT_TAG
-		d659e3b8312e26ba19329f96b73ba88d1211bfdb
+		3a2448d5b12afd607f02af231571ec76443cb545
 )
 FetchContent_MakeAvailable(kananlib)
 
@@ -239,6 +249,7 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 		"dependencies/imgui/imgui_draw.cpp"
 		"dependencies/imgui/imgui_tables.cpp"
 		"dependencies/imgui/imgui_widgets.cpp"
+		"dependencies/imgui/misc/freetype/imgui_freetype.cpp"
 	)
 
 	add_library(imgui STATIC)
@@ -252,7 +263,12 @@ if(REF_BUILD_FRAMEWORK AND CMAKE_SIZEOF_VOID_P EQUAL 8) # build-framework
 
 	target_include_directories(imgui PUBLIC
 		"dependencies/imgui"
+		"dependencies/imgui/misc/freetype"
 		"src/re2-imgui"
+	)
+
+	target_link_libraries(imgui PUBLIC
+		freetype
 	)
 
 endif()
