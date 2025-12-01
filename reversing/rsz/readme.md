@@ -8,8 +8,8 @@ For unknown reasons, these scripts require <= Python 3.9, otherwise the output i
 3. Run the following commands (replace `re4` with your game name, and target the dumped executable)
 
 ```
-python .\emulation-dumper.py --p="re4_dump.exe" --il2cpp_path="il2cpp_dump.json" --test_mode=False
-python .\non-native-dumper.py --out_postfix="re4" --natives_path=".\native_layouts_re4_dump.exe.json" --il2cpp_path="il2cpp_dump.json" --use_typedefs=False --use_hashkeys=True
+python .\emulation-dumper.py --p="MonsterHunterWilds_dump.exe" --il2cpp_path="il2cpp_dump.json" --test_mode=False
+python .\non-native-dumper.py --out_postfix="mhwilds" --il2cpp_path="il2cpp_dump.json" --natives_path=".\native_layouts_MonsterHunterWilds_dump.exe.json" --use_typedefs=False --use_hashkeys=True --include_parents=False --unpack_struct=True --hardcode_native_rsz_path="hardcode_native_rsz.json,hardcode_native_rsz_struct.json" --hardcode_native_layout_path="hardcode_native_layout.json"
 ```
 
 # `emulation-dumper.py`
@@ -45,6 +45,12 @@ Uses [Unicorn](https://github.com/unicorn-engine/unicorn) to emulate all of the 
 * `use_hashkeys`
 * `include_parents`
     * Will add the parent object name to the struct or omitted if not found.
+* `unpack_struct`
+    * For non-list struct type, unpack it like before
+* `hardcode_native_rsz_path`
+    * Use to change the native rsz information (field name and type). Cannot change its layout.
+* `hardcode_native_layout_path`
+    * Use to change the native layout of specific classes.
 
 ### Outputs
 `rsz(out_postfix).json`

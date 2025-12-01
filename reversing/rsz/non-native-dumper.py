@@ -571,3 +571,4 @@ def main(out_postfix="", il2cpp_path="", natives_path=None, use_typedefs=False, 
 
 if __name__ == '__main__':
     fire.Fire(main)
+    # python non-native-dumper.py mhwilds il2cpp_dump.json native_layouts_MonsterHunterWilds_dump.exe.json False True False True hardcode_native_rsz.json,hardcode_native_rsz_struct.json hardcode_native_layout.json
