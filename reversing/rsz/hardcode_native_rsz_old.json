@@ -1,0 +1,82 @@
+{
+    "MHRise": {
+        "669fc998": {
+            "crc": "63d05354",
+            "fields": [
+                {
+                    "align": 1,
+                    "array": false,
+                    "name": "v0_Enabled",
+                    "native": true,
+                    "original_type": "",
+                    "size": 1,
+                    "type": "Bool"
+                },
+                {
+                    "align": 1,
+                    "array": false,
+                    "name": "v1_DevelopDraw",
+                    "native": true,
+                    "original_type": "",
+                    "size": 1,
+                    "type": "Bool"
+                },
+                {
+                    "align": 4,
+                    "array": false,
+                    "name": "v2_DevelopDrawFillMode",
+                    "native": true,
+                    "original_type": "via.physics.FillMode",
+                    "size": 4,
+                    "type": "S32"
+                },
+                {
+                    "align": 4,
+                    "array": true,
+                    "name": "v3_DependencyResources",
+                    "native": true,
+                    "original_type": "via.ResourceHandle",
+                    "size": 4,
+                    "type": "String"
+                },
+                {
+                    "align": 4,
+                    "array": true,
+                    "name": "v4_RequestSetGroups",
+                    "native": true,
+                    "original_type": "via.physics.RequestSetCollider.RequestSetGroup",
+                    "size": 4,
+                    "type": "Object"
+                },
+                {
+                    "align": 4,
+                    "array": false,
+                    "name": "v5_BankResource",
+                    "native": true,
+                    "original_type": "via.physics.CharacterColliderBankResourceHandle",
+                    "size": 4,
+                    "type": "String"
+                },
+                {
+                    "align": 4,
+                    "array": false,
+                    "name": "v6",
+                    "native": true,
+                    "original_type": "",
+                    "size": 4,
+                    "type": "Data"
+                },
+                {
+                    "align": 4,
+                    "array": false,
+                    "name": "v7",
+                    "native": true,
+                    "original_type": "",
+                    "size": 4,
+                    "type": "Data"
+                }
+            ],
+            "name": "via.physics.RequestSetCollider"
+        }
+    }
+}

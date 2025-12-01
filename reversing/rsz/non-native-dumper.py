@@ -200,7 +200,11 @@ TypeCode = [
 ]
 
 TypeCodeSearch = dict([(k.lower(),v) for k,v in hardcoded_native_type_to_TypeCode.items()] + [(a.lower(), a) for a in TypeCode] + [("via."+a.lower(), a) for a in TypeCode] + [("system."+a.lower(), a) for a in TypeCode])
+"""The Key is always lower case."""
 # print(TypeCodeSearch)
+
+hardcode_rsz = {}
+hardcode_layout = {}
 
 def generate_native_name(element, use_potential_name, reflection_property, il2cpp_dump={}):
     if element is None:
@@ -259,7 +263,7 @@ def enum_fallback(reflection_property, il2cpp_dump={}):
         return "Enum"
     return native_element["RSZ"][0]["code"]
 
-def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs, prefix = "", i=0, struct_i=0, unpack_struct=True, hardcode_rsz=None):
+def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs, prefix = "", i=0, struct_i=0, unpack_struct=True):
     e = il2cpp_entry
     parent_name = key
 
@@ -289,13 +293,19 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
         layoutMarker = {}
 
         for chain in parent_native:
-            if "layout" not in chain or len(chain["layout"]) == 0:
+            layout = None
+            if chain["name"] in hardcode_layout:
+                layout = hardcode_layout[chain["name"]]
+            else:
+                if "layout" not in chain:
+                    continue
+                layout = chain["layout"]
+
+            if len(layout) == 0:
                 continue
 
             found_anything = True
             struct_str = struct_str + "// " + chain["name"] + " BEGIN\n"
-            
-            layout = chain["layout"]
 
             temp_i = i
             for field in layout[:]:
@@ -422,7 +432,7 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
             if unpack_struct and code == "Struct" and type in il2cpp_dump and rsz_entry.get("array", 0) != 1:
                 # keep struct type data unpacked for backwards compatibility if it is not an array.
 
-                nested_entry, nested_str, i, struct_i = generate_field_entries(il2cpp_dump, natives, type, il2cpp_dump[type], use_typedefs, "STRUCT_" + name + "_", i, struct_i, hardcode_rsz=hardcode_rsz)
+                nested_entry, nested_str, i, struct_i = generate_field_entries(il2cpp_dump, natives, type, il2cpp_dump[type], use_typedefs, "STRUCT_" + name + "_", i, struct_i)
 
                 if len(nested_entry) > 0:
                     fields_out += nested_entry
@@ -477,7 +487,7 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
     return fields_out, struct_str, i, struct_i
 
 
-def main(out_postfix="", il2cpp_path="", natives_path=None, use_typedefs=False, use_hashkeys=False, include_parents=False, unpack_struct=True, hardcode_native_rsz_path=None):
+def main(out_postfix="", il2cpp_path="", natives_path=None, use_typedefs=False, use_hashkeys=False, include_parents=False, unpack_struct=True, hardcode_native_rsz_path=None, hardcode_native_layout_path=None):
     if il2cpp_path is None:
         return
 
@@ -492,12 +502,33 @@ def main(out_postfix="", il2cpp_path="", natives_path=None, use_typedefs=False, 
     else:
         print("No natives file found, output may be incorrect for some types")
     
-    hardcode_native_rsz = None
+    global hardcode_rsz
+    global hardcode_layout
+    hardcode_native_rsz = {}
+    hardcode_native_layout = {}
 
     if hardcode_native_rsz_path is not None:
-        with open(hardcode_native_rsz_path, "r", encoding="utf8") as f:
-            hardcode_native_rsz = json.load(f)
-            print("Hardcoded native RSZ loaded")
+        if "," in hardcode_native_rsz_path:
+            hardcode_native_rsz_path = hardcode_native_rsz_path.split(",")
+        else:
+            hardcode_native_rsz_path = [hardcode_native_rsz_path]
+        for path in hardcode_native_rsz_path:
+            with open(path, "r", encoding="utf8") as f:
+                hardcode_native_rsz.update(json.load(f))
+                print(f"Hardcoded native RSZ loaded from {path}")
+    
+    if hardcode_native_layout_path is not None:
+        if "," in hardcode_native_layout_path:
+            hardcode_native_layout_path = hardcode_native_layout_path.split(",")
+        else:
+            hardcode_native_layout_path = [hardcode_native_layout_path]
+        for path in hardcode_native_layout_path:
+            with open(path, "r", encoding="utf8") as f:
+                hardcode_native_layout.update(json.load(f))
+                print(f"Hardcoded native layout loaded from {path}")
+    
+    hardcode_rsz = hardcode_native_rsz
+    hardcode_layout = hardcode_native_layout
 
     out_str = ""
     out_json = {}
@@ -523,7 +554,7 @@ def main(out_postfix="", il2cpp_path="", natives_path=None, use_typedefs=False, 
         struct_str = "// " + entry["fqn"] + "\n"
         struct_str = struct_str + "struct " + key + " {\n"
 
-        fields, struct_body, _, __ = generate_field_entries(il2cpp_dump, natives, key, entry, use_typedefs, unpack_struct=unpack_struct, hardcode_rsz=hardcode_native_rsz)
+        fields, struct_body, _, __ = generate_field_entries(il2cpp_dump, natives, key, entry, use_typedefs, unpack_struct=unpack_struct)
 
         json_entry["fields"] = fields
         struct_str = struct_str + struct_body

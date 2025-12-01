@@ -1,0 +1,457 @@
+{
+	"via.AnimationCurve3D": [
+		{
+			"align": 4,
+			"element": {
+				"align": 16,
+				"element": null,
+				"element_size": 16,
+				"list": false,
+				"offset": 5691269392,
+				"size": 16,
+				"string": false
+			},
+			"element_size": 16,
+			"list": true,
+			"offset": 5691269124,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": {
+				"align": 16,
+				"element": null,
+				"element_size": 16,
+				"list": false,
+				"offset": 5691269664,
+				"size": 16,
+				"string": false
+			},
+			"element_size": 16,
+			"list": true,
+			"offset": 5691269396,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": {
+				"align": 16,
+				"element": null,
+				"element_size": 16,
+				"list": false,
+				"offset": 5691269936,
+				"size": 16,
+				"string": false
+			},
+			"element_size": 16,
+			"list": true,
+			"offset": 5691269668,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269940,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269944,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269948,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269952,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269956,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269960,
+			"size": 4,
+			"string": false
+		}
+	],
+	"via.sound.SoundCurve": [
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269124,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269128,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269132,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269136,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269140,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269144,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": {
+				"align": 4,
+				"element": null,
+				"element_size": 4,
+				"list": false,
+				"offset": 5691269212,
+				"size": 4,
+				"string": false
+			},
+			"element_size": 4,
+			"list": true,
+			"offset": 5691269148,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269213,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 36,
+			"list": false,
+			"offset": 5691269252,
+			"size": 4,
+			"string": true
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 36,
+			"list": false,
+			"offset": 5691269288,
+			"size": 4,
+			"string": true
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 36,
+			"list": false,
+			"offset": 5691269324,
+			"size": 4,
+			"string": true
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269328,
+			"size": 4,
+			"string": false
+		}
+	],
+	"via.render.LDRColorDeficiencySimulation": [
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269124,
+			"size": 4,
+			"string": false
+		}
+	],
+	"via.motion.SecondaryAnimation": [
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269121,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269122,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269128,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269132,
+			"size": 4,
+			"string": false
+		}
+	],
+	"via.motion.ActorMotionCamera": [
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 0,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": {
+				"align": 4,
+				"element": null,
+				"element_size": 4,
+				"list": false,
+				"offset": 5691269188,
+				"size": 4,
+				"string": false
+			},
+			"element_size": 4,
+			"list": true,
+			"offset": 5691269124,
+			"size": 4,
+			"string": false
+		}
+	],
+	"via.navigation.FilterSet": [
+		{
+			"align": 4,
+			"element": {
+				"align": 4,
+				"element": null,
+				"element_size": 4,
+				"list": false,
+				"offset": 5691269188,
+				"size": 4,
+				"string": false
+			},
+			"element_size": 4,
+			"list": true,
+			"offset": 5691269124,
+			"size": 4,
+			"string": false
+		}
+	],
+	"via.navigation.map.InteractionShapeAABB": [
+		{
+			"align": 16,
+			"element": null,
+			"element_size": 32,
+			"list": false,
+			"offset": 5691269152,
+			"size": 32,
+			"string": false
+		}
+	],
+	"via.gui.PlayObject": [
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 36,
+			"list": false,
+			"offset": 5691269156,
+			"size": 4,
+			"string": true
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 36,
+			"list": false,
+			"offset": 5691269192,
+			"size": 4,
+			"string": true
+		},
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269193,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269194,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 2,
+			"element": null,
+			"element_size": 2,
+			"list": false,
+			"offset": 5691269196,
+			"size": 2,
+			"string": false
+		}
+	],
+	"via.gui.GUILight": [
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269121,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 16,
+			"element": null,
+			"element_size": 16,
+			"list": false,
+			"offset": 5691269152,
+			"size": 16,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269156,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269160,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269164,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269168,
+			"size": 4,
+			"string": false
+		}
+	],
+	"via.gui.GUIPointLight": [
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269124,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269128,
+			"size": 4,
+			"string": false
+		}
+	]
+}
