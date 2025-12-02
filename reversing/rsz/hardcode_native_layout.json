@@ -453,5 +453,218 @@
 			"size": 4,
 			"string": false
 		}
+	],
+	"via.render.LightShaftFilterControl": [
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269121,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269128,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269132,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269133,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269134,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5,
+			"size": 4,
+			"string": false
+		}
+	],
+	"via.render.MotionBlur": [
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269121,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269128,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269129,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269136,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269140,
+			"size": 4,
+			"string": false
+		}
+	],
+	"via.render.SSSSSControl": [
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269121,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 1,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 2,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 3,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 4,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5,
+			"size": 4,
+			"string": false
+		}
+	],
+	"via.render.CustomFilterBase": [
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269121,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269122,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": {
+				"align": 4,
+				"element": null,
+				"element_size": 4,
+				"list": false,
+				"offset": 5691269192,
+				"size": 4,
+				"string": false
+			},
+			"element_size": 4,
+			"list": true,
+			"offset": 5691269128,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": {
+				"align": 4,
+				"element": null,
+				"element_size": 4,
+				"list": false,
+				"offset": 5691269260,
+				"size": 4,
+				"string": false
+			},
+			"element_size": 4,
+			"list": true,
+			"offset": 5691269196,
+			"size": 4,
+			"string": false
+		}
 	]
 }
