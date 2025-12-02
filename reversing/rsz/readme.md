@@ -9,7 +9,7 @@ For unknown reasons, these scripts require <= Python 3.9, otherwise the output i
 
 ```
 python .\emulation-dumper.py --p="MonsterHunterWilds_dump.exe" --il2cpp_path="il2cpp_dump.json" --test_mode=False
-python .\non-native-dumper.py --out_postfix="mhwilds" --il2cpp_path="il2cpp_dump.json" --natives_path=".\native_layouts_MonsterHunterWilds_dump.exe.json" --use_typedefs=False --use_hashkeys=True --include_parents=False --unpack_struct=True --hardcode_native_rsz_path="hardcode_native_rsz.json,hardcode_native_rsz_struct.json" --hardcode_native_layout_path="hardcode_native_layout.json"
+python .\non-native-dumper.py --out_postfix="mhwilds" --il2cpp_path="il2cpp_dump.json" --natives_path=".\native_layouts_MonsterHunterWilds_dump.exe.json" --use_typedefs=False --use_hashkeys=True --include_parents=False --unpack_struct=True --hardcode_native_rsz_path="hardcode_native_rsz.json,hardcode_native_rsz_change_layout.json" --hardcode_native_layout_path="hardcode_native_layout.json"
 ```
 
 # `emulation-dumper.py`
