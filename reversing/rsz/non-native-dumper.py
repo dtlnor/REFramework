@@ -88,6 +88,7 @@ hardcoded_align_sizes = {
     "Sfix2": als(4, 8),
     "Sfix3": als(4, 12),
     "Sfix4": als(4, 16),
+    "Position": als(8, 24),
 }
 
 hardcoded_native_type_to_TypeCode = {
@@ -336,19 +337,28 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
             reflection_properties = il2cpp_dump[chain["name"]].get("reflection_properties", None)
             append_potential_name = False
 
+            rp_number_match = reflection_properties is not None and len(layout) == len(reflection_properties)
+            if not rp_number_match:
+                reflection_methods = il2cpp_dump[chain["name"]].get("reflection_methods", {}).keys()
+                settable_reflection_methods = [m.removeprefix("set_") for m in reflection_methods if m.startswith("set_")]
+                filtered_reflection_properties = {k: v for k, v in reflection_properties.items() if k in settable_reflection_methods}
+                rp_number_match = len(layout) == len(filtered_reflection_properties)
+                if rp_number_match:
+                    reflection_properties = filtered_reflection_properties
+
             # If len not match, we give-up
-            if reflection_properties is not None and len(layout) == len(reflection_properties):
+            if rp_number_match:
                 append_potential_name = True
 
                 # sort reflection_properties by its native order
                 reflection_properties = dict(sorted(reflection_properties.items(), key=lambda item: int(item[1]["order"])))
 
                 # check align and size to increase accuracy
-                for (property_name, property_value), field in zip(reflection_properties.items(), layout):
-                    property_type_code = generate_native_name(field, True, property_value, il2cpp_dump)
+                for (property_name, property_values), field in zip(reflection_properties.items(), layout):
+                    property_type_code = generate_native_name(field, True, property_values, il2cpp_dump)
 
                     if property_type_code == "Enum":
-                        property_type_code = enum_fallback(property_value, il2cpp_dump)
+                        property_type_code = enum_fallback(property_values, il2cpp_dump)
 
                     reflection_properties[property_name]["TypeCode"] = property_type_code
 
