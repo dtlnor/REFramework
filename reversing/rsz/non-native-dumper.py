@@ -339,8 +339,11 @@ def generate_field_entries(il2cpp_dump, natives, key, il2cpp_entry, use_typedefs
 
             rp_number_match = reflection_properties is not None and len(layout) == len(reflection_properties)
             if not rp_number_match:
-                reflection_methods = il2cpp_dump[chain["name"]].get("reflection_methods", {}).keys()
-                settable_reflection_methods = [m.removeprefix("set_") for m in reflection_methods if m.startswith("set_")]
+                # reflection_methods = il2cpp_dump[chain["name"]].get("reflection_methods", {}).keys()
+                tdb_methods = il2cpp_dump[chain["name"]].get("methods", {})
+                tdb_methods = set([k.removesuffix(str(vs["id"])) for k, vs in tdb_methods.items()])
+
+                settable_reflection_methods = [m.removeprefix("set_") for m in tdb_methods if m.startswith("set_")]
                 filtered_reflection_properties = {k: v for k, v in reflection_properties.items() if k in settable_reflection_methods}
                 rp_number_match = len(layout) == len(filtered_reflection_properties)
                 if rp_number_match:
