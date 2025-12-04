@@ -266,81 +266,6 @@
 		],
 		"name": "via.motion.SecondaryAnimation"
 	},
-	"d8b20e2e": {
-		"crc": "8f603004",
-		"fields": [
-			{
-				"align": 1,
-				"array": false,
-				"name": "Enabled",
-				"native": true,
-				"original_type": "",
-				"size": 1,
-				"type": "Bool"
-			},
-			{
-				"align": 1,
-				"array": false,
-				"name": "DebugDraw",
-				"native": true,
-				"original_type": "",
-				"size": 1,
-				"type": "Bool"
-			},
-			{
-				"align": 4,
-				"array": false,
-				"name": "UpdateTiming",
-				"native": true,
-				"original_type": "via.motion.ExpressionUpdate",
-				"size": 4,
-				"type": "S32"
-			},
-			{
-				"align": 4,
-				"array": false,
-				"name": "Priority",
-				"native": true,
-				"original_type": "",
-				"size": 4,
-				"type": "S32"
-			},
-			{
-				"align": 1,
-				"array": false,
-				"name": "AutoPlayMotionState",
-				"native": true,
-				"original_type": "",
-				"size": 1,
-				"type": "Bool"
-			},
-			{
-				"align": 4,
-				"array": true,
-				"name": "Layer",
-				"native": true,
-				"original_type": "via.motion.ActorCameraLayer",
-				"size": 4,
-				"type": "Object"
-			}
-		],
-		"name": "via.motion.ActorMotionCamera"
-	},
-	"ab77eb0f": {
-		"crc": "704b0605",
-		"fields": [
-			{
-				"align": 4,
-				"array": true,
-				"name": "Filters",
-				"native": true,
-				"original_type": "via.navigation.AttributeInfo",
-				"size": 4,
-				"type": "Object"
-			}
-		],
-		"name": "via.navigation.FilterSet"
-	},
 	"6c1b2afc": {
 		"crc": "e0f36694",
 		"fields": [
@@ -596,66 +521,6 @@
 		],
 		"name": "via.render.MotionBlur"
 	},
-	"c7d8e0a": {
-		"crc": "b614d2a2",
-		"fields": [
-			{
-				"align": 1,
-				"array": false,
-				"name": "Enabled",
-				"native": true,
-				"original_type": "",
-				"size": 1,
-				"type": "Bool"
-			},
-			{
-				"align": 4,
-				"array": false,
-				"name": "Algorithm",
-				"native": true,
-				"original_type": "via.render.SSSSSControl.Algorithm",
-				"size": 4,
-				"type": "S32"
-			},
-			{
-				"align": 1,
-				"array": false,
-				"name": "Enabled",
-				"native": true,
-				"original_type": "",
-				"size": 1,
-				"type": "Bool"
-			},
-			{
-				"align": 1,
-				"array": false,
-				"name": "NormalAlignment",
-				"native": true,
-				"original_type": "",
-				"size": 1,
-				"type": "Bool"
-			},
-			{
-				"align": 1,
-				"array": false,
-				"name": "InternalDenoise",
-				"native": true,
-				"original_type": "",
-				"size": 1,
-				"type": "Bool"
-			},
-			{
-				"align": 4,
-				"array": false,
-				"name": "DenoiseStrength",
-				"native": true,
-				"original_type": "via.render.SSSSSControl.DenoiseStrength",
-				"size": 4,
-				"type": "S32"
-			}
-		],
-		"name": "via.render.SSSSSControl"
-	},
 	"e9f7b207": {
 		"crc": "345d8e0b",
 		"fields": [
@@ -697,5 +562,203 @@
 			}
 		],
 		"name": "via.render.CustomFilterBase"
+	},
+	"c030cc1e": {
+		"crc": "ef5ab0c3",
+		"fields": [
+			{
+				"align": 1,
+				"array": false,
+				"name": "Enabled",
+				"native": true,
+				"original_type": "",
+				"size": 1,
+				"type": "Bool"
+			},
+			{
+				"align": 1,
+				"array": false,
+				"name": "DevelopDraw",
+				"native": true,
+				"original_type": "",
+				"size": 1,
+				"type": "Bool"
+			},
+			{
+				"align": 4,
+				"array": false,
+				"name": "DevelopDrawFillMode",
+				"native": true,
+				"original_type": "via.physics.FillMode",
+				"size": 4,
+				"type": "S32"
+			},
+			{
+				"align": 4,
+				"array": true,
+				"name": "DependencyResources",
+				"native": true,
+				"original_type": "via.ResourceHandle",
+				"size": 4,
+				"type": "String"
+			}
+		],
+		"name": "via.physics.CollidableBase"
+	},
+	"669fc998": {
+		"crc": "1be418e8",
+		"fields": [
+			{
+				"align": 1,
+				"array": false,
+				"name": "Enabled",
+				"native": true,
+				"original_type": "",
+				"size": 1,
+				"type": "Bool"
+			},
+			{
+				"align": 1,
+				"array": false,
+				"name": "DevelopDraw",
+				"native": true,
+				"original_type": "",
+				"size": 1,
+				"type": "Bool"
+			},
+			{
+				"align": 4,
+				"array": false,
+				"name": "DevelopDrawFillMode",
+				"native": true,
+				"original_type": "via.physics.FillMode",
+				"size": 4,
+				"type": "S32"
+			},
+			{
+				"align": 4,
+				"array": true,
+				"name": "DependencyResources",
+				"native": true,
+				"original_type": "via.ResourceHandle",
+				"size": 4,
+				"type": "String"
+			},
+			{
+				"align": 1,
+				"array": false,
+				"name": "Verbose",
+				"native": true,
+				"original_type": "",
+				"size": 1,
+				"type": "Bool"
+			},
+			{
+				"align": 4,
+				"array": true,
+				"name": "RequestSetGroups",
+				"native": true,
+				"original_type": "via.physics.RequestSetCollider.RequestSetGroup",
+				"size": 4,
+				"type": "Object"
+			},
+			{
+				"align": 4,
+				"array": false,
+				"name": "BankResource",
+				"native": true,
+				"original_type": "via.physics.CharacterColliderBankResourceHandle",
+				"size": 4,
+				"type": "Resource"
+			},
+			{
+				"align": 4,
+				"array": false,
+				"name": "v7",
+				"native": true,
+				"original_type": "",
+				"size": 4,
+				"type": "Data"
+			},
+			{
+				"align": 4,
+				"array": false,
+				"name": "v8",
+				"native": true,
+				"original_type": "",
+				"size": 4,
+				"type": "Data"
+			}
+		],
+		"name": "via.physics.RequestSetCollider"
+	},
+	"a311af49": {
+		"crc": "9bd6eabe",
+		"fields": [
+			{
+				"align": 4,
+				"array": false,
+				"name": "v0_ShaderName",
+				"native": true,
+				"original_type": "",
+				"size": 4,
+				"type": "C8"
+			},
+			{
+				"align": 4,
+				"array": false,
+				"name": "v1_Priority",
+				"native": true,
+				"original_type": "",
+				"size": 4,
+				"type": "U32"
+			},
+			{
+				"align": 4,
+				"array": false,
+				"name": "v2_DispatchThreadGroupNum",
+				"native": true,
+				"original_type": "",
+				"size": 12,
+				"type": "Uint3"
+			},
+			{
+				"align": 1,
+				"array": false,
+				"name": "v3_Running",
+				"native": true,
+				"original_type": "",
+				"size": 1,
+				"type": "Bool"
+			},
+			{
+				"align": 4,
+				"array": true,
+				"name": "v4_SrvResources",
+				"native": true,
+				"original_type": "",
+				"size": 4,
+				"type": "Object"
+			},
+			{
+				"align": 4,
+				"array": true,
+				"name": "v5_UavResources",
+				"native": true,
+				"original_type": "",
+				"size": 4,
+				"type": "Object"
+			},
+			{
+				"align": 4,
+				"array": false,
+				"name": "v6_CbResources",
+				"native": true,
+				"original_type": "",
+				"size": 4,
+				"type": "Object"
+			}
+		],
+		"name": "via.render.CustomComputeShader.ComputeShaderSettings"
 	}
 }

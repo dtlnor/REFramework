@@ -666,5 +666,154 @@
 			"size": 4,
 			"string": false
 		}
+	],
+	"via.physics.CollidableBase": [
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269121,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 5691269122,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 5691269128,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": {
+				"align": 4,
+				"element": null,
+				"element_size": 36,
+				"list": false,
+				"offset": 5691269708,
+				"size": 4,
+				"string": true
+			},
+			"element_size": 36,
+			"list": true,
+			"offset": 5691269132,
+			"size": 4,
+			"string": false
+		}
+	],
+	"via.network.ContextLamm": [
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 36,
+			"list": false,
+			"offset": 5691269156,
+			"size": 4,
+			"string": true
+		}
+	],
+	"via.network.ContextSteam": [
+		{
+			"align": 8,
+			"element": null,
+			"element_size": 8,
+			"list": false,
+			"offset": 5691269128,
+			"size": 8,
+			"string": false
+		}
+	],
+	"via.render.CustomComputeShader.ComputeShaderSettings": [
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 20,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 24,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 12,
+			"list": false,
+			"offset": 36,
+			"size": 12,
+			"string": false
+		},
+		{
+			"align": 1,
+			"element": null,
+			"element_size": 1,
+			"list": false,
+			"offset": 37,
+			"size": 1,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": {
+				"align": 4,
+				"element": null,
+				"element_size": 4,
+				"list": false,
+				"offset": 108,
+				"size": 4,
+				"string": false
+			},
+			"element_size": 4,
+			"list": true,
+			"offset": 44,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": {
+				"align": 4,
+				"element": null,
+				"element_size": 4,
+				"list": false,
+				"offset": 176,
+				"size": 4,
+				"string": false
+			},
+			"element_size": 4,
+			"list": true,
+			"offset": 112,
+			"size": 4,
+			"string": false
+		},
+		{
+			"align": 4,
+			"element": null,
+			"element_size": 4,
+			"list": false,
+			"offset": 180,
+			"size": 4,
+			"string": false
+		}
 	]
 }
