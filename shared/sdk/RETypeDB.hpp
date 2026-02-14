@@ -1526,7 +1526,7 @@ struct TDB {
 #pragma pack(pop)
 }
 
-#if TDB_VER == 81
+#if TDB_VER >= 81
 struct REModule_: public sdk::tdb81::REModule {};
 #else
 struct REModule_: public sdk::tdb74::REModule {};

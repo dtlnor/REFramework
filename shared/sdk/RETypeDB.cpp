@@ -1191,7 +1191,7 @@ std::span<uint32_t> REModule::get_types() const {
 std::span<uint32_t> REModule::get_methods() const {
     auto tdb = RETypeDB::get();
 
-#if TDB_VER == 81
+#if TDB_VER >= 81
     spdlog::warn("This TDB version does not support REModule::get_methods()");
     return {};
 #else
@@ -1202,7 +1202,7 @@ std::span<uint32_t> REModule::get_methods() const {
 std::span<uint32_t> REModule::get_instantiated_methods() const {
     auto tdb = RETypeDB::get();
 
-#if TDB_VER == 81
+#if TDB_VER >= 81
     spdlog::warn("This TDB version does not support REModule::get_instantiated_methods()");
     return {};
 #else
@@ -1213,7 +1213,7 @@ std::span<uint32_t> REModule::get_instantiated_methods() const {
 std::span<uint32_t> REModule::get_member_references() const {
     auto tdb = RETypeDB::get();
 
-#if TDB_VER == 81
+#if TDB_VER >= 81
     spdlog::warn("This TDB version does not support REModule::get_member_references()");
     return {};
 #else
