@@ -133,18 +133,18 @@ public:
 	uint32_t typeIndexProbably; //0x0018
 	char pad_001C[4]; //0x001C
 	char *name; //0x0020
-	uint32_t parentTypeId; //0x0028
+	char pad_0028[4]; //0x0028
 	uint32_t typeCRC; //0x002C
-	uint32_t size; //0x0030
+	uint32_t size : 24; //0x0030
+	uint32_t unkFlags : 8;
 	uint32_t miscFlags; //0x0034
-	char pad_0038[8]; //0x0038
-	class REType *super; //0x0040
-	class REType *childType; //0x0048
-	class REType *chainType; //0x0050
-	class REFieldList *fields; //0x0058
-	class REClassInfo *classInfo; //0x0060 is a managed type if this is not null
-}; //Size: 0x0068
-static_assert(sizeof(REType) == 0x68);
+	class REType *super; //0x0038
+	class REType *childType; //0x0040
+	class REType *chainType; //0x0048
+	class REFieldList *fields; //0x0050
+	class REClassInfo *classInfo; //0x0058 is a managed type if this is not null
+}; //Size: 0x0060
+static_assert(sizeof(REType) == 0x60);
 
 class N000003DE
 {
@@ -4017,11 +4017,11 @@ static_assert(sizeof(ArrayDeserializeSequence) == 0x10);
 class RETypeCLR : public REType
 {
 public:
-	class ArrayDeserializeSequence deserializeThing; //0x0068
-	class REType *nativeType; //0x0078
-	char *name2; //0x0080
-}; //Size: 0x0088
-static_assert(sizeof(RETypeCLR) == 0x88);
+	class ArrayDeserializeSequence deserializeThing; //0x0060
+	class REType *nativeType; //0x0070
+	char *name2; //0x0078
+}; //Size: 0x0080
+static_assert(sizeof(RETypeCLR) == 0x80);
 
 class DeserializeSequence
 {
