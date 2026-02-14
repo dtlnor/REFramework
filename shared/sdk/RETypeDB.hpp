@@ -1546,6 +1546,19 @@ struct REParameterDef : public sdk::tdb84::REParameterDef {};
 struct GenericListData : public sdk::tdb84::GenericListData {};
 using ParamList = sdk::tdb84::ParamList;
 
+#elif TDB_VER >= 82
+struct RETypeDB_ : public sdk::tdb82::TDB {};
+struct REMethodDefinition_ : public sdk::tdb82::REMethodDefinition {};
+struct REMethodImpl : public sdk::tdb82::REMethodImpl {};
+using REField_ = sdk::tdb82::REField;
+struct REFieldImpl : public sdk::tdb82::REFieldImpl {};
+struct RETypeImpl : public sdk::tdb82::RETypeImpl {};
+struct REPropertyImpl : public sdk::tdb82::REPropertyImpl {};
+struct REProperty : public sdk::tdb82::REProperty {};
+struct REParameterDef : public sdk::tdb82::REParameterDef {};
+struct GenericListData : public sdk::tdb82::GenericListData {};
+using ParamList = sdk::tdb82::ParamList;
+
 #elif TDB_VER >= 81
 struct RETypeDB_ : public sdk::tdb81::TDB {};
 struct REMethodDefinition_ : public sdk::tdb81::REMethodDefinition {};
