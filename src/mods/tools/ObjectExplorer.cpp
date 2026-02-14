@@ -517,10 +517,14 @@ void ObjectExplorer::on_draw_dev_ui() {
 
         for (auto i = 0; i < tdb->get_num_modules(); ++i) {
             auto& module = tdb->modules[i];
+
+            std::string_view assembly_name{ module.get_assembly_name() != nullptr ? module.get_assembly_name() : "Unknown" };
+            std::string_view module_name{ module.get_module_name() != nullptr ? module.get_module_name() : "Unknown" };
+            std::string_view location{ module.get_location() != nullptr ? module.get_location() : "Unknown" };
             
-            if (ImGui::TreeNode(module.get_assembly_name())) {
-                ImGui::Text("Location: %s", module.get_location());
-                ImGui::Text("Module Name: %s", module.get_module_name());
+            if (ImGui::TreeNode(assembly_name.data())) {
+                ImGui::Text("Location: %s", location.data());
+                ImGui::Text("Module Name: %s", module_name.data());
                 
                 if (ImGui::TreeNode("Assembly Types")) {
                     std::vector<uint8_t> fake_type{ 0 };
